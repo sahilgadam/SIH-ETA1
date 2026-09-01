@@ -1,0 +1,66 @@
+/**
+ * A small, realistic sample of frequently tracked coaching trains.
+ * Times are scheduled times from the public timetable, not live data.
+ */
+export const popularTrains = [
+  {
+    number: '12951',
+    name: 'Mumbai Central – New Delhi Rajdhani Express',
+    from: { code: 'BCT', name: 'Mumbai Central' },
+    to: { code: 'NDLS', name: 'New Delhi' },
+    departs: '17:00',
+    arrives: '08:32',
+    duration: '15h 32m',
+    runsOn: 'Daily',
+  },
+  {
+    number: '12301',
+    name: 'Howrah – New Delhi Rajdhani Express',
+    from: { code: 'HWH', name: 'Howrah Junction' },
+    to: { code: 'NDLS', name: 'New Delhi' },
+    departs: '16:50',
+    arrives: '10:00',
+    duration: '17h 10m',
+    runsOn: 'Daily',
+  },
+  {
+    number: '12002',
+    name: 'Rani Kamlapati – New Delhi Shatabdi Express',
+    from: { code: 'RKMP', name: 'Rani Kamlapati' },
+    to: { code: 'NDLS', name: 'New Delhi' },
+    departs: '05:40',
+    arrives: '13:10',
+    duration: '7h 30m',
+    runsOn: 'Daily',
+  },
+  {
+    number: '12621',
+    name: 'Tamil Nadu Express',
+    from: { code: 'MAS', name: 'MGR Chennai Central' },
+    to: { code: 'NDLS', name: 'New Delhi' },
+    departs: '22:00',
+    arrives: '06:45',
+    duration: '32h 45m',
+    runsOn: 'Daily',
+  },
+  {
+    number: '22691',
+    name: 'KSR Bengaluru – Hazrat Nizamuddin Rajdhani Express',
+    from: { code: 'SBC', name: 'KSR Bengaluru City' },
+    to: { code: 'NZM', name: 'Hazrat Nizamuddin' },
+    departs: '20:00',
+    arrives: '05:55',
+    duration: '33h 55m',
+    runsOn: 'Mon, Wed, Thu, Sat',
+  },
+  {
+    number: '20901',
+    name: 'Mumbai Central – Gandhinagar Vande Bharat Express',
+    from: { code: 'BCT', name: 'Mumbai Central' },
+    to: { code: 'ADI', name: 'Ahmedabad Junction' },
+    departs: '06:10',
+    arrives: '11:25',
+    duration: '5h 15m',
+    runsOn: 'Except Sunday',
+  },
+]
