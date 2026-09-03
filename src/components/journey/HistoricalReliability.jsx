@@ -17,10 +17,7 @@ export function HistoricalReliability({ history, className }) {
   const worst = Math.max(...history.runs, 1)
 
   return (
-    <section
-      aria-labelledby="history-title"
-      className={cn('rounded-lg border border-line bg-surface p-5', className)}
-    >
+    <section aria-labelledby="history-title" className={cn(className)}>
       <h2 id="history-title" className="flex items-center gap-2 text-base font-bold text-fg">
         <History className="size-4 shrink-0 text-fg-subtle" aria-hidden="true" />
         {t('history.title')}

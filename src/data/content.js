@@ -6,7 +6,7 @@ import { BellRing, Radio, ShieldCheck, Timer } from 'lucide-react'
  */
 export const navItems = [
   { id: 'home', href: '#top', labelKey: 'nav.home' },
-  { id: 'live-status', href: '#find-train', labelKey: 'nav.liveStatus' },
+  { id: 'live-status', href: '#live', labelKey: 'nav.liveStatus' },
   { id: 'trains', href: '#popular-trains', labelKey: 'nav.trains' },
   { id: 'stations', href: '#station-board', labelKey: 'nav.stations' },
   { id: 'alerts', href: '#alerts', labelKey: 'nav.alerts' },
@@ -41,7 +41,7 @@ export const footerSections = [
     id: 'product',
     titleKey: 'footer.product',
     links: [
-      { labelKey: 'nav.liveStatus', href: '#find-train' },
+      { labelKey: 'nav.liveStatus', href: '#live' },
       { labelKey: 'nav.stations', href: '#station-board' },
       { labelKey: 'nav.trains', href: '#popular-trains' },
     ],

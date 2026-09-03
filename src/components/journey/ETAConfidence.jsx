@@ -26,10 +26,7 @@ export function ETAConfidence({ confidence, className }) {
   const Icon = level.icon
 
   return (
-    <section
-      aria-labelledby="confidence-title"
-      className={cn('rounded-lg border border-line bg-surface p-5', className)}
-    >
+    <section aria-labelledby="confidence-title" className={cn(className)}>
       <h2 id="confidence-title" className="text-base font-bold text-fg">
         {t('confidence.title')}
       </h2>

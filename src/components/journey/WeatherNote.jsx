@@ -15,10 +15,7 @@ export function WeatherNote({ weather, className }) {
   if (!weather) return null
 
   return (
-    <section
-      aria-labelledby="weather-title"
-      className={cn('rounded-lg border border-line bg-surface p-5', className)}
-    >
+    <section aria-labelledby="weather-title" className={cn(className)}>
       <h2 id="weather-title" className="flex items-center gap-2 text-base font-bold text-fg">
         <CloudRain className="size-4 shrink-0 text-accent" aria-hidden="true" />
         {t('weather.title')}

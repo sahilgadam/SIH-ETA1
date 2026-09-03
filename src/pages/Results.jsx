@@ -10,6 +10,7 @@ import {
   resolveStationCode,
 } from '../lib/search'
 import { Button } from '../components/ui/Button'
+import { Eyebrow } from '../components/ui/Eyebrow'
 
 /** Runs the search criteria against the mock journeys and lists what matched. */
 function runSearch(criteria) {
@@ -57,12 +58,17 @@ export function Results({ criteria, onSelectTrain, onBack }) {
           {t('results.back')}
         </Button>
 
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-fg">{title}</h1>
+        <Eyebrow as="p" className="mt-4">
+          {t('results.timetableLabel')}
+        </Eyebrow>
+        <h1 className="mt-2 font-display text-2xl font-medium tracking-tight text-fg sm:text-[1.75rem]">
+          {title}
+        </h1>
         <p className="mt-1.5 text-sm text-fg-muted">{subtitle}</p>
       </div>
 
       {results.length > 0 ? (
-        <ul data-enter className="mt-5 overflow-hidden rounded-lg border border-line bg-surface">
+        <ul data-enter className="mt-5 overflow-hidden border border-line bg-surface">
           {results.map((result) => (
             <TrainResultRow
               key={result.journey.trainNumber}

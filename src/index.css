@@ -4,67 +4,161 @@
 
 /* ---------------------------------------------------------------------------
    RailSense design tokens
-   Light is the primary theme: calm paper background, deep navy/charcoal ink,
-   railway green as the single action colour, restrained blue as accent.
+   ---------------------------------------------------------------------------
+   Concept: an intelligent instrument built from the physical language of
+   Indian Railways — parchment timetables, station signage, cast-iron signal
+   hardware, timber sleepers — rendered with modern data-visualisation
+   discipline. Warm ivory is the field; dark charcoal-ink is the type; railway
+   green is a signal, not a wash.
+
+   The eight core hexes are used twice, in mirrored roles:
+     light mode = ivory/parchment SURFACE ramp + deep-ink TEXT ramp
+     dark mode  = deep INK/iron SURFACE ramp + ivory/parchment TEXT ramp
+   so both themes are literally the same eight stops, read in opposite
+   directions. --fg-muted/--fg-subtle are the only interpolated in-betweens.
+
+   Signal semantics (deliberate, not decorative):
+     green  = go / primary action / focus ring   ("proceed")
+     red    = stop / current position / error    ("signal at danger")
+     amber  = caution / simulated, non-live data  ("hand-authored, not fed")
 --------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
-  --page: #f3f5f4;
-  --surface: #ffffff;
-  --sunken: #eef1f0;
-  --line: #dee4e2;
-  --line-strong: #c4cecb;
+  /* Surface ramp — ivory to clay */
+  --page: #f4f0e7;
+  --surface: #f8f5ee;
+  --sunken: #e9e0d2;
+  --line: #d6c7b5;
+  --line-strong: #b79c82;
 
-  --fg: #12202b;
-  --fg-muted: #52646d;
-  --fg-subtle: #62717a;
+  /* Ink ramp — deep charcoal to rust */
+  --fg: #17231f;
+  --fg-muted: #4a3b2e;
+  --fg-subtle: #6b5744;
 
-  --brand: #0b6b45;
-  --brand-hover: #085639;
-  --brand-soft: #ecf5f0;
-  --brand-fg: #ffffff;
+  /* Signal green — sparing: one primary action, one focus ring */
+  --brand: #1e4a36;
+  --brand-hover: #163526;
+  --brand-soft: #e4e9e1;
+  --brand-fg: #f4f0e7;
 
-  --accent: #1d4e89;
-  --accent-soft: #edf3fa;
+  /* Signal red — current position, live state, errors */
+  --accent: #a6392b;
+  --accent-hover: #8a2e22;
+  --accent-soft: #f3e1db;
 
-  --danger: #b42318;
-  --danger-soft: #fdf3f2;
-  --caution: #9a5410;
+  --danger: #a6392b;
+  --danger-soft: #f3e1db;
 
-  --focus: #1d4e89;
+  /* Burnt amber — caution, simulated/non-live data */
+  --caution: #a66423;
+  --caution-soft: #f1e3d1;
+
+  /* Brass — the premium/editorial accent. Historic railway hardware: name
+     plates, lamp bezels, instrument bearings. Used for highlights and
+     station nodes on dark ground, never as a fill on paper. */
+  --brass: #96733e;
+  --brass-bright: #b4935d;
+  --brass-soft: #efe4cf;
+
+  /* Section grounds. The page is deliberately not one colour top to bottom
+     (§7): editorial passages sit on paper, the network sits on deep railway
+     green, photography breaks to sand. These are fixed in both themes —
+     a dark section stays dark in light mode, which is the point. */
+  --ground-paper: #f4f0e7;
+  --ground-sand: #e9ded0;
+  --ground-deep: #142b23;
+  --ground-deep-2: #1b3a2f;
+  --ground-brown: #2e211a;
+
+  /* Type + hairlines for use on the dark grounds above. */
+  --on-deep: #eee6d8;
+  --on-deep-muted: #a9bdb1;
+  --on-deep-line: rgba(238, 230, 216, 0.16);
+
+  /* Signal aspects. Fixed in both themes because they are read against the
+     dark network ground either way, and because a signal that changed hue
+     with the site theme would stop being a signal. */
+  --sig-green: #5aa87c;
+  --sig-amber: #d79a45;
+  --sig-red: #cf5f4c;
+
+  /* Small, always-on green text (Eyebrow labels, the wordmark) needs its own
+     step: --brand-hover is tuned as a hover-state background and lands just
+     under AA at 11-13px against paper. */
+  --brand-text: #0f2a1e;
+
+  --focus: #1e4a36;
+
+  /* Warm-tinted shadow ramp (coffee, not neutral black) */
+  --shadow-warm-xs: 0 1px 2px 0 rgb(61 48 40 / 0.07);
+  --shadow-warm-sm: 0 2px 6px -1px rgb(61 48 40 / 0.09), 0 1px 2px -1px rgb(61 48 40 / 0.06);
+  --shadow-warm-md: 0 12px 28px -8px rgb(61 48 40 / 0.14), 0 4px 10px -6px rgb(61 48 40 / 0.08);
 }
 
 .dark {
   color-scheme: dark;
 
-  --page: #0d151a;
-  --surface: #141e24;
-  --sunken: #101a20;
-  --line: #26343b;
-  --line-strong: #3a4b53;
+  /* Surface ramp — cast-iron to timber-brown */
+  --page: #17231f;
+  --surface: #17231f;
+  --sunken: #24302b;
+  --line: #3d3028;
+  --line-strong: #56382a;
 
-  --fg: #e8edeb;
-  --fg-muted: #9dadb4;
-  --fg-subtle: #7d8d95;
+  /* Ink ramp (inverted) — ivory to timber */
+  --fg: #f4f0e7;
+  --fg-muted: #cbb9a2;
+  --fg-subtle: #a88f76;
 
-  --brand: #35a377;
-  --brand-hover: #48b78a;
-  --brand-soft: #10261e;
-  --brand-fg: #07130e;
+  /* Filled brand surfaces carry LIGHT text in dark mode, not dark text.
+     The previous pairing (near-black #0e1712 on mid-green #3e7a5b) measured
+     3.6:1 — below AA — on every primary button, so the green is taken a step
+     darker and the on-brand ink becomes ivory. Hover darkens rather than
+     lightens, which keeps the same text legible through the interaction. */
+  --brand: #357052;
+  --brand-hover: #2b5f45;
+  --brand-soft: #1c2b22;
+  --brand-fg: #f4f0e7;
 
-  --accent: #8bb2e0;
-  --accent-soft: #15222e;
+  --accent: #bd5c46;
+  --accent-hover: #d3735c;
+  --accent-soft: #2e1c17;
 
-  --danger: #f08a7d;
-  --danger-soft: #2a1614;
-  --caution: #dfa464;
+  --danger: #bd5c46;
+  --danger-soft: #2e1c17;
 
-  --focus: #8bb2e0;
+  --caution: #c98b4a;
+  --caution-soft: #2c2015;
+
+  --brass: #c3a46b;
+  --brass-bright: #d8bd8a;
+  --brass-soft: #2a2318;
+
+  /* Paper/sand grounds darken in dark mode; the deep grounds barely move —
+     they are already a night control room. */
+  --ground-paper: #17231f;
+  --ground-sand: #1e2a25;
+  --ground-deep: #0f201a;
+  --ground-deep-2: #163027;
+  --ground-brown: #241a15;
+
+  --brand-text: #5fae86;
+
+  --focus: #4c9069;
+
+  --shadow-warm-xs: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow-warm-sm: 0 2px 6px -1px rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.3);
+  --shadow-warm-md: 0 12px 28px -8px rgb(0 0 0 / 0.5), 0 4px 10px -6px rgb(0 0 0 / 0.35);
 }
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+  /* Display serif for editorial headlines, used with restraint. UI/body text
+     stays in Manrope. Operational values (train numbers, timestamps,
+     coordinates, delays) stay in IBM Plex Mono — never proportional. */
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -82,13 +176,76 @@
   --color-brand-hover: var(--brand-hover);
   --color-brand-soft: var(--brand-soft);
   --color-brand-fg: var(--brand-fg);
+  --color-brand-text: var(--brand-text);
 
   --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
 
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+
   --color-caution: var(--caution);
+  --color-caution-soft: var(--caution-soft);
+
+  --color-brass: var(--brass);
+  --color-brass-bright: var(--brass-bright);
+  --color-brass-soft: var(--brass-soft);
+
+  --color-ground-paper: var(--ground-paper);
+  --color-ground-sand: var(--ground-sand);
+  --color-ground-deep: var(--ground-deep);
+  --color-ground-deep-2: var(--ground-deep-2);
+  --color-ground-brown: var(--ground-brown);
+
+  --color-on-deep: var(--on-deep);
+  --color-on-deep-muted: var(--on-deep-muted);
+  --color-on-deep-line: var(--on-deep-line);
+
+  --color-sig-green: var(--sig-green);
+  --color-sig-amber: var(--sig-amber);
+  --color-sig-red: var(--sig-red);
+
+  /* Near-square geometry. Overriding Tailwind's own radius scale means every
+     existing rounded-md/rounded-lg usage across the app inherits the new,
+     almost-square instrument geometry without being touched individually. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+
+  /* Subtle, warm-tinted shadows — never neutral black, never a glow. */
+  --shadow-xs: var(--shadow-warm-xs);
+  --shadow-sm: var(--shadow-warm-sm);
+  --shadow-md: var(--shadow-warm-md);
+
+  /* Motion: a heavier, decelerating curve for anything that reads as
+     physical movement (the rail marker, a reveal); a quick snap for
+     ordinary UI feedback (hover, press). */
+  --ease-rail: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-snap: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Extra-wide tracking for station-board / manifest-style labels, beyond
+     Tailwind's own tracking-widest. */
+  --tracking-rail: 0.14em;
+
+  /* Macro section rhythm — generous, editorial vertical whitespace and a
+     bleed gutter for edge-to-edge moments. Available as p-section-y,
+     py-section-y-tight, px-gutter, etc. once page sections adopt them. */
+  --spacing-section-y: clamp(3.5rem, 6vw, 7rem);
+  --spacing-section-y-tight: clamp(2rem, 4vw, 3.5rem);
+  --spacing-gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+/* Plain custom properties for contexts that need a JS-readable duration
+   rather than a Tailwind utility (IntersectionObserver reveals, Anime.js
+   calls) — kept in one place so every future consumer agrees on pacing. */
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 260ms;
+  --motion-slow: 480ms;
+  --motion-reveal: 720ms;
 }
 
 @layer base {
@@ -131,7 +288,8 @@
 }
 
 @layer components {
-  /* Faint sleeper-tick pattern behind the hero. Deliberately low contrast. */
+  /* Faint sleeper-tick pattern behind editorial sections. Deliberately low
+     contrast — texture, not decoration. */
   .track-backdrop {
     position: relative;
     isolation: isolate;
@@ -157,7 +315,7 @@
     opacity: 0.5;
   }
 
-  /* Two rails with sleepers between them — used as a section separator. */
+  /* Two rails with sleepers between them — the section-divider signature. */
   .rail-rule {
     height: 7px;
     background-image:
@@ -172,92 +330,138 @@
     background-position: 0 0, 0 100%, 0 50%;
     background-repeat: no-repeat, no-repeat, repeat-x;
   }
-}
 
-/* ---------------------------------------------------------------------------
-   Leaflet
-   The map lives inside the app's surfaces, so Leaflet's own chrome — popups,
-   attribution, the zoom focus ring — is restyled onto the design tokens rather
-   than left in its default blue-and-white.
---------------------------------------------------------------------------- */
-@layer components {
-  .leaflet-container {
-    font-family: var(--font-sans);
-    background: var(--sunken);
+  /* A single running rail — the line the RailLine component threads its
+     station nodes along. One hairline, not the double-rail divider above. */
+  .rail-line-track {
+    position: relative;
+    height: 1px;
+    background: var(--line-strong);
   }
 
-  /* Tiles are light-authored; nudge the dark basemap to sit on our surface. */
-  .dark .leaflet-tile-pane {
-    filter: brightness(0.92) saturate(0.85);
+  .dark .rail-line-track {
+    background: var(--line-strong);
   }
 
-  .leaflet-popup-content-wrapper,
-  .leaflet-popup-tip {
-    background: var(--surface);
-    color: var(--fg);
-    border: 1px solid var(--line);
-    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
-  }
-
-  .leaflet-popup-content-wrapper {
-    border-radius: 0.5rem;
-  }
-
-  .leaflet-popup-content {
-    margin: 0.875rem 1rem;
-    line-height: 1.5;
-  }
-
-  .leaflet-popup-close-button {
-    color: var(--fg-subtle) !important;
-    padding: 0.5rem 0.5rem 0 0 !important;
-  }
-
-  .leaflet-popup-close-button:hover {
-    color: var(--fg) !important;
-  }
-
-  .leaflet-container a.leaflet-popup-close-button:focus-visible,
-  .leaflet-container .leaflet-interactive:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  .leaflet-control-attribution {
-    background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
-    color: var(--fg-subtle) !important;
-    font-size: 0.625rem;
-  }
-
-  .leaflet-control-attribution a {
-    color: var(--fg-muted) !important;
-  }
-
-  /* The train marker: a filled dot with a soft halo so it stays findable
-     against both basemaps without being a loud pin. */
-  .railsense-train-dot {
+  /* A station node on the rail: a small ring that fills solid when the
+     journey has reached it. Pulses gently only for the single "live" node,
+     never in bulk. */
+  .rail-node {
+    position: relative;
     display: block;
-    width: 14px;
-    height: 14px;
-    margin: 4px;
+    width: 9px;
+    height: 9px;
     border-radius: 9999px;
-    background: var(--marker);
-    border: 2px solid var(--surface);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 28%, transparent);
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    transition: background-color var(--motion-base) var(--ease-snap),
+      border-color var(--motion-base) var(--ease-snap);
+  }
+
+  .rail-node[data-state='passed'] {
+    background: var(--fg-subtle);
+    border-color: var(--fg-subtle);
+  }
+
+  .rail-node[data-state='live'] {
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    .railsense-train-dot {
-      animation: railsense-pulse 2.4s ease-in-out infinite;
+    .rail-node[data-state='live']::after {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 9999px;
+      border: 1px solid var(--accent);
+      opacity: 0.45;
+      animation: rail-node-pulse 2.4s ease-in-out infinite;
     }
   }
 
-  @keyframes railsense-pulse {
+  @keyframes rail-node-pulse {
     0%, 100% {
-      box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 28%, transparent);
+      transform: scale(0.85);
+      opacity: 0.45;
     }
     50% {
-      box-shadow: 0 0 0 8px color-mix(in srgb, var(--marker) 8%, transparent);
+      transform: scale(1.35);
+      opacity: 0;
+    }
+  }
+
+  /* The assistant panel rises from the dock button rather than fading in. */
+  @keyframes dock-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* A congested section breathes rather than blinks — the point is "this
+     stretch is running hot", not an alarm demanding a click. */
+  @keyframes congestion-breathe {
+    0%, 100% { stroke-opacity: 0.32; }
+    50% { stroke-opacity: 0.72; }
+  }
+
+  .congestion-pulse {
+    animation: congestion-breathe 3.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .congestion-pulse {
+      animation: none;
+      stroke-opacity: 0.6;
+    }
+  }
+
+  /* Fixed, pointer-events-none grain — a physical-paper cue for large
+     editorial fields. Opt in per-section; never applied globally. */
+  .grain-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .dark .grain-overlay {
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+  }
+}
+
+
+@layer components {
+  /* The decorative marker in the homepage "how it sees a journey" strip:
+     a slow sweep across five stops, easing into a brief pause at each one —
+     the same "slow down, stop, continue" language as the real journey
+     timeline, just looped for display rather than driven by simulated time. */
+  @keyframes journey-demo-sweep {
+    0% { left: 0%; }
+    9% { left: 22%; }
+    14% { left: 25%; }
+    23% { left: 25%; }
+    32% { left: 47%; }
+    37% { left: 50%; }
+    46% { left: 50%; }
+    55% { left: 72%; }
+    60% { left: 75%; }
+    69% { left: 75%; }
+    78% { left: 98%; }
+    83% { left: 100%; }
+    100% { left: 100%; }
+  }
+
+  .journey-demo-marker {
+    animation: journey-demo-sweep 15s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .journey-demo-marker {
+      left: 50% !important;
+      animation: none;
     }
   }
 }

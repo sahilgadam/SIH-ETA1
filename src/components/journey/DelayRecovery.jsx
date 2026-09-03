@@ -36,10 +36,7 @@ export function DelayRecovery({ recovery, className }) {
   const Icon = recovery.isNetRecovery ? TrendingDown : TrendingUp
 
   return (
-    <section
-      aria-labelledby="recovery-title"
-      className={cn('rounded-lg border border-line bg-surface p-5', className)}
-    >
+    <section aria-labelledby="recovery-title" className={cn(className)}>
       <h2 id="recovery-title" className="flex items-center gap-2 text-base font-bold text-fg">
         <Icon
           className={cn('size-4 shrink-0', recovery.isNetRecovery ? 'text-brand' : 'text-caution')}

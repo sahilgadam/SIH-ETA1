@@ -4,7 +4,7 @@ const VARIANTS = {
   primary:
     'bg-brand text-brand-fg border border-transparent hover:bg-brand-hover active:bg-brand-hover',
   secondary:
-    'bg-surface text-fg border border-line-strong hover:bg-sunken hover:border-fg-subtle active:bg-sunken',
+    'bg-surface text-fg border border-line-strong hover:bg-sunken hover:border-fg active:bg-sunken',
   ghost:
     'bg-transparent text-fg-muted border border-transparent hover:bg-sunken hover:text-fg active:bg-sunken',
 }
@@ -27,8 +27,9 @@ export function Button({
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center rounded-md font-semibold',
-        'transition-colors duration-150 active:translate-y-px',
+        'inline-flex items-center justify-center rounded-sm font-semibold tracking-tight',
+        'transition-[background-color,border-color,color] duration-[var(--motion-fast)] ease-[var(--ease-snap)]',
+        'active:translate-y-px',
         'disabled:pointer-events-none disabled:opacity-50',
         VARIANTS[variant],
         SIZES[size],

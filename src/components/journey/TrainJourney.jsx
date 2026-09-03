@@ -13,7 +13,7 @@ import {
   getWeather,
 } from '../../lib/prediction'
 import { JourneyMap } from '../map/JourneyMap'
-import { VoiceSearch } from '../voice/VoiceSearch'
+import { AskRailSense } from '../assistant/AskRailSense'
 import { ConnectionProtection } from './ConnectionProtection'
 import { DelayRecovery } from './DelayRecovery'
 import { ETAConfidence } from './ETAConfidence'
@@ -46,7 +46,7 @@ import { WhyThisETA } from './WhyThisETA'
  * from the live forecast every render, which is what keeps connection risk
  * moving as the predicted arrival moves.
  */
-export function TrainJourney({ journey: baseJourney, onBack, onOpenTrain }) {
+export function TrainJourney({ journey: baseJourney, onBack }) {
   const containerRef = useEntrance({ delay: 40, each: 60 })
   const [connectionNumber, setConnectionNumber] = useState('')
 
@@ -99,13 +99,18 @@ export function TrainJourney({ journey: baseJourney, onBack, onOpenTrain }) {
         />
       </div>
 
-      {/* One flat grid: WeatherNote renders nothing when the run has no weather
-          factor, so the row reflows to three cards instead of leaving a hole. */}
-      <div data-enter className="mt-5 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <DelayRecovery recovery={recovery} className="min-w-0" />
-        <ETAConfidence confidence={confidence} className="min-w-0" />
-        <WeatherNote weather={weather} className="min-w-0" />
-        <HistoricalReliability history={history} className="min-w-0" />
+      {/* One bordered instrument cluster, not three separate cards side by
+          side: a single panel with internal dividers, exactly like
+          PerformanceMetrics above it. WeatherNote renders nothing when the
+          run has no weather factor, so the dividers reflow on their own. */}
+      <div
+        data-enter
+        className="mt-5 grid divide-y divide-line border border-line bg-surface md:grid-cols-2 md:divide-y-0 md:divide-x lg:grid-cols-3"
+      >
+        <DelayRecovery recovery={recovery} className="min-w-0 p-5" />
+        <ETAConfidence confidence={confidence} className="min-w-0 p-5" />
+        <WeatherNote weather={weather} className="min-w-0 p-5" />
+        <HistoricalReliability history={history} className="min-w-0 p-5" />
       </div>
 
       <div data-enter className="mt-5 grid gap-5 lg:grid-cols-12">
@@ -116,7 +121,11 @@ export function TrainJourney({ journey: baseJourney, onBack, onOpenTrain }) {
           onConnectionChange={setConnectionNumber}
           className="min-w-0 lg:col-span-7"
         />
-        <VoiceSearch journey={journey} onOpenTrain={onOpenTrain} className="min-w-0 lg:col-span-5" />
+        {/* The same assistant as the dock — one engine, one set of answers,
+            rather than a second voice panel with its own behaviour (§14). */}
+        <div className="min-w-0 border border-line bg-surface p-4 lg:col-span-5">
+          <AskRailSense />
+        </div>
       </div>
 
       <div data-enter className="mt-5">

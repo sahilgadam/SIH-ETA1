@@ -7,16 +7,31 @@ import { IconButton } from '../ui/IconButton'
 import { LanguageSelect } from '../ui/LanguageSelect'
 import { Logo } from '../ui/Logo'
 import { ThemeToggle } from '../ui/ThemeToggle'
+import { SimClock } from './SimClock'
 
-export function Navbar({ isHome = true, onNavigateHome }) {
+export function Navbar({ isHome = true, currentHref, onNavigateHome }) {
   const { t } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [activeHref, setActiveHref] = useState('#top')
+  const [clickedHref, setClickedHref] = useState('#top')
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  // Derived, not synced: when the shell is on a view of its own (`#live`, or a
+  // train/results screen where nothing in this bar applies) that wins, and the
+  // clicked section only governs highlighting while on the landing page. A
+  // `null` currentHref matches no item, so nothing is marked current.
+  const activeHref = currentHref !== undefined ? currentHref : clickedHref
 
   useEffect(() => {
-    const syncFromHash = () => setActiveHref(window.location.hash || '#top')
+    const syncFromHash = () => setClickedHref(window.location.hash || '#top')
     window.addEventListener('hashchange', syncFromHash)
     return () => window.removeEventListener('hashchange', syncFromHash)
+  }, [])
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
@@ -29,8 +44,11 @@ export function Navbar({ isHome = true, onNavigateHome }) {
   }, [isMenuOpen])
 
   const handleNavClick = (event, href) => {
-    setActiveHref(href)
-    if (isHome) return
+    setClickedHref(href)
+    // `#live` names a view rather than a section, so it is always handled by
+    // the app shell — letting the browser treat it as an anchor would simply
+    // find no element and do nothing.
+    if (isHome && href !== '#live') return
     // The section anchors only exist on the landing page.
     event.preventDefault()
     onNavigateHome?.(href)
@@ -38,28 +56,43 @@ export function Navbar({ isHome = true, onNavigateHome }) {
 
   const linkClass = (href) =>
     cn(
-      'rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors duration-150',
+      'relative inline-flex h-full items-center px-3 text-[0.8125rem] font-semibold uppercase tracking-[0.06em] transition-colors duration-150',
+      'after:absolute after:inset-x-3 after:bottom-0 after:h-[2px] after:scale-x-0 after:bg-brand after:transition-transform after:duration-200 after:ease-[var(--ease-snap)]',
       activeHref === href
-        ? 'bg-sunken text-fg'
-        : 'text-fg-muted hover:bg-sunken hover:text-fg',
+        ? 'text-fg after:scale-x-100'
+        : 'text-fg-muted hover:text-fg hover:after:scale-x-75',
     )
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface">
-      <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-4 sm:px-6">
+    <header
+      className={cn(
+        'sticky top-0 z-40 border-b border-line transition-[background-color,box-shadow] duration-200',
+        isScrolled
+          ? 'bg-[color-mix(in_srgb,var(--surface)_92%,transparent)] shadow-sm backdrop-blur-sm'
+          : 'bg-surface',
+      )}
+    >
+      <div
+        className={cn(
+          'mx-auto flex max-w-[1240px] items-center gap-1 px-4 transition-[height] duration-200 sm:px-6',
+          isScrolled ? 'h-14' : 'h-16',
+        )}
+      >
         <a
           href="#top"
           onClick={(event) => handleNavClick(event, '#top')}
-          className="shrink-0"
+          className="mr-2 shrink-0"
         >
           <Logo />
           <span className="sr-only">RailSense — home</span>
         </a>
 
-        <nav aria-label={t('nav.primary')} className="hidden flex-1 lg:block">
-          <ul className="flex items-center gap-0.5">
+        <span className="hidden h-6 w-px shrink-0 bg-line lg:block" aria-hidden="true" />
+
+        <nav aria-label={t('nav.primary')} className="hidden h-full flex-1 lg:block">
+          <ul className="flex h-full items-stretch">
             {navItems.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className="h-full">
                 <a
                   href={item.href}
                   aria-current={activeHref === item.href ? 'page' : undefined}
@@ -73,7 +106,9 @@ export function Navbar({ isHome = true, onNavigateHome }) {
           </ul>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
+        <SimClock className="ml-auto lg:ml-4" />
+
+        <div className="ml-auto flex items-center gap-2 lg:ml-4">
           <LanguageSelect className="hidden sm:block" />
           <ThemeToggle />
           <IconButton
@@ -98,7 +133,7 @@ export function Navbar({ isHome = true, onNavigateHome }) {
           aria-label={t('nav.primary')}
           className="border-t border-line bg-surface lg:hidden"
         >
-          <ul className="mx-auto flex max-w-[1200px] flex-col px-4 py-2 sm:px-6">
+          <ul className="mx-auto flex max-w-[1240px] flex-col px-4 py-2 sm:px-6">
             {navItems.map((item) => (
               <li key={item.id}>
                 <a
@@ -108,7 +143,12 @@ export function Navbar({ isHome = true, onNavigateHome }) {
                     handleNavClick(event, item.href)
                     setIsMenuOpen(false)
                   }}
-                  className={cn('block py-2.5 text-sm font-medium', linkClass(item.href))}
+                  className={cn(
+                    'block border-l-2 py-2.5 pl-3 text-sm font-semibold uppercase tracking-[0.06em]',
+                    activeHref === item.href
+                      ? 'border-brand text-fg'
+                      : 'border-transparent text-fg-muted',
+                  )}
                 >
                   {t(item.labelKey)}
                 </a>
