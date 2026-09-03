@@ -1,36 +1,37 @@
 import { AboutRailSense } from '../components/home/AboutRailSense'
+import { CategoryPreview } from '../components/home/CategoryPreview'
 import { DelayPropagation } from '../components/home/DelayPropagation'
+import { FinalCta } from '../components/home/FinalCta'
 import { Hero } from '../components/home/Hero'
 import { JourneyDemo } from '../components/home/JourneyDemo'
-import { LiveNetwork } from '../components/home/LiveNetwork'
-import { LiveStrip } from '../components/home/LiveStrip'
-import { OperationalAlerts } from '../components/home/OperationalAlerts'
-import { PopularTrains } from '../components/home/PopularTrains'
-import { StationsBoard } from '../components/home/StationsBoard'
 import { ValueStrip } from '../components/home/ValueStrip'
 
 /**
- * The landing page.
+ * The landing page — a passenger's entry point, and nothing else.
  *
- * Section order follows the passenger's actual questions (§11, §69): search,
- * then what the network is doing right now, then the trains themselves —
- * useful running information arrives before any explanation of the product.
- * Editorial and capability material comes last, once the tool has already
- * proved what it does.
+ * Home used to carry the whole product: a network-status strip, the live map,
+ * the running timetable, the operational events feed and a station board. All
+ * five now live on the pages they belong to (Live Status, Trains, Alerts,
+ * Stations), which is what lets this page answer the four questions a
+ * passenger actually arrives with, in order:
+ *
+ *   what train am I looking for   → hero search, then service classes
+ *   where is it / when will it    → how a journey is tracked
+ *   how reliable is that ETA      → why the forecast moves
+ *
+ * Discovery comes before explanation, and both come before the editorial and
+ * capability material.
  */
-export function Home({ onSearch, onOpenTrain, onOpenLive }) {
+export function Home({ onSearch, onOpenLive, onOpenTrains }) {
   return (
     <>
       <Hero onSearch={onSearch} />
-      <LiveStrip />
-      <LiveNetwork onOpenLive={onOpenLive} />
-      <PopularTrains onSelectTrain={(train) => onOpenTrain(train.number)} />
+      <CategoryPreview onOpenTrains={onOpenTrains} />
       <JourneyDemo />
       <DelayPropagation />
-      <OperationalAlerts />
-      <StationsBoard onSearch={onSearch} />
       <AboutRailSense />
       <ValueStrip />
+      <FinalCta onOpenLive={onOpenLive} onOpenTrains={onOpenTrains} />
     </>
   )
 }

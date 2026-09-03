@@ -258,6 +258,16 @@ function propagate(route, minutes, liveFrom) {
     runMin[i] = Math.max(section.bookedRunMin * factor, 1)
     actualArr[i + 1] = actualDep[i] + runMin[i]
 
+    // A service is not shown arriving before its booked time. Slack exists to
+    // recover time already lost, not to put a train ahead of the timetable —
+    // without this clamp a well-run service reports a negative variance, and
+    // a connection window opens wider than it could really be.
+    const bookedArr = stops[i + 1].bookedArr
+    if (bookedArr != null && actualArr[i + 1] < bookedArr) {
+      actualArr[i + 1] = bookedArr
+      runMin[i] = actualArr[i + 1] - actualDep[i]
+    }
+
     const next = stops[i + 1]
     if (next.bookedDep != null) {
       const bookedDwell = next.bookedDep - next.bookedArr
@@ -422,6 +432,11 @@ export function trainStateAt(number, minutes) {
       ? {
           from: section.from,
           to: section.to,
+          // Where this section sits along the route (0-1), so the map can
+          // draw completed / current / remaining as three distinct states
+          // from the same numbers the timeline uses.
+          tFrom: section.tFrom,
+          tTo: section.tTo,
           km: section.km,
           bookedRunMin: section.bookedRunMin,
           currentRunMin: Math.round(runMin[section.index]),
@@ -482,6 +497,28 @@ export function summarise(trains) {
     avgDelay: trains.reduce((s, t) => s + t.delayMin, 0) / (trains.length || 1),
     avgSpeed: moving.length ? Math.round(moving.reduce((s, t) => s + t.speedKmh, 0) / moving.length) : 0,
   }
+}
+
+/**
+ * "In 18 min" rather than "at 06:30".
+ *
+ * `minutes` is simulated minutes since SIM_START; `target` is an absolute
+ * simulated minute. Returns null once the moment has passed, so callers can
+ * fall back to a plain clock time rather than printing "in -4 min".
+ */
+export function minutesUntil(targetMin, minutes) {
+  const now = SIM_START_MINUTES + minutes
+  const delta = Math.round(targetMin - now)
+  return delta >= 0 ? delta : null
+}
+
+/** A short human phrasing of a wait: "18 min", "1 h 20 m". */
+export function formatDuration(mins) {
+  if (mins == null) return null
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m ? `${h} h ${m} m` : `${h} h`
 }
 
 /** Services calling at a station, with their predicted times there (§7). */

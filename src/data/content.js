@@ -4,11 +4,19 @@ import { BellRing, Radio, ShieldCheck, Timer } from 'lucide-react'
  * Primary navigation. Every entry points at a real section of this page for
  * now; each will become its own route once those screens are built.
  */
+/**
+ * Nav entries whose href names a whole VIEW rather than a section of the
+ * landing page. The navbar must always intercept these — letting the browser
+ * treat them as anchors would simply find no element and do nothing — and the
+ * app shell resolves them to a page.
+ */
+export const viewHrefs = new Set(['#live', '#trains', '#stations', '#alerts'])
+
 export const navItems = [
   { id: 'home', href: '#top', labelKey: 'nav.home' },
   { id: 'live-status', href: '#live', labelKey: 'nav.liveStatus' },
-  { id: 'trains', href: '#popular-trains', labelKey: 'nav.trains' },
-  { id: 'stations', href: '#station-board', labelKey: 'nav.stations' },
+  { id: 'trains', href: '#trains', labelKey: 'nav.trains' },
+  { id: 'stations', href: '#stations', labelKey: 'nav.stations' },
   { id: 'alerts', href: '#alerts', labelKey: 'nav.alerts' },
   { id: 'about', href: '#about', labelKey: 'nav.about' },
 ]
@@ -42,8 +50,8 @@ export const footerSections = [
     titleKey: 'footer.product',
     links: [
       { labelKey: 'nav.liveStatus', href: '#live' },
-      { labelKey: 'nav.stations', href: '#station-board' },
-      { labelKey: 'nav.trains', href: '#popular-trains' },
+      { labelKey: 'nav.stations', href: '#stations' },
+      { labelKey: 'nav.trains', href: '#trains' },
     ],
   },
   {

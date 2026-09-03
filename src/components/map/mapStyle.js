@@ -27,9 +27,13 @@ export const MAP_PALETTE = {
     state: '#ded0b9',
     corridor: '#b09477',
     corridorCasing: '#f4efe4',
-    activeRoute: '#96733e',
+    // The selected journey in three states (§21). Read as a sequence:
+    // remaining is the lightest, already-run is the darkest, and the section
+    // the train is inside is the one bright band.
+    activeRoute: '#c9a970',   // remaining — light brass
     activeCasing: '#fbf7ef',
-    coveredRoute: '#1e4a36',
+    coveredRoute: '#3b2920',  // already run — deep brown, darkest on the map
+    currentSection: '#96733e', // running now — muted brass, strongest weight
     station: '#f8f5ee',
     stationEdge: '#7a6248',
     stationMajor: '#96733e',
@@ -44,9 +48,10 @@ export const MAP_PALETTE = {
     state: '#243329',
     corridor: '#6c5644',
     corridorCasing: '#1b2a24',
-    activeRoute: '#c3a46b',
+    activeRoute: '#8a7248',
     activeCasing: '#101a16',
-    coveredRoute: '#4f896e',
+    coveredRoute: '#e2d6c0',  // on a dark map the already-run line is the pale one
+    currentSection: '#d8bd8a',
     station: '#101a16',
     stationEdge: '#9d8a72',
     stationMajor: '#c3a46b',

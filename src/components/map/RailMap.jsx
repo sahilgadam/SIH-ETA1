@@ -8,6 +8,7 @@ import {
   networkStations,
   positionOf,
   routeCoordinates,
+  routes,
   trainNumbers,
   trainStateAt,
 } from '../../lib/railSim'
@@ -92,7 +93,22 @@ function trainIcon(color, scale = 1, ring = false) {
 
 const emptyFC = { type: 'FeatureCollection', features: [] }
 
-export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followSelected, className }) {
+const lineFC = (coordinates) => ({
+  type: 'FeatureCollection',
+  features:
+    coordinates.length > 1
+      ? [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates } }]
+      : [],
+})
+
+export function RailMap({
+  selectedTrain,
+  onSelectTrain,
+  onSelectStation,
+  followSelected,
+  focusMode = false,
+  className,
+}) {
   const { theme } = useTheme()
   const { subscribe, trains, prefersReducedMotion } = useNetwork()
 
@@ -106,6 +122,8 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
   selectedRef.current = selectedTrain
   const followRef = useRef(followSelected)
   followRef.current = followSelected
+  const focusRef = useRef(focusMode)
+  focusRef.current = focusMode
 
   const palette = getMapPalette(theme)
   const paletteRef = useRef(palette)
@@ -174,6 +192,7 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
       map.addSource('corridors', { type: 'geojson', data: corridors })
       map.addSource('active-route', { type: 'geojson', data: emptyFC })
       map.addSource('covered-route', { type: 'geojson', data: emptyFC })
+      map.addSource('current-section', { type: 'geojson', data: emptyFC })
 
       map.addLayer({
         id: 'corridor-casing',
@@ -205,12 +224,22 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': p.activeRoute, 'line-width': 3 },
       })
+      // Three states, drawn in order (§21): the whole route as the light
+      // "remaining" line, the part already run over it, then the section the
+      // train is inside as the strongest band of all.
       map.addLayer({
         id: 'covered-route',
         type: 'line',
         source: 'covered-route',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': p.coveredRoute, 'line-width': 3.4 },
+        paint: { 'line-color': p.coveredRoute, 'line-width': 4.2 },
+      })
+      map.addLayer({
+        id: 'current-section',
+        type: 'line',
+        source: 'current-section',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': p.currentSection, 'line-width': 5.4, 'line-opacity': 0.95 },
       })
 
       // Stations.
@@ -321,6 +350,10 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
         const isSelected = selectedRef.current === number
         if (isSelected) selectedPosition = position
 
+        // Focused mode shows one service only — the others are removed from
+        // the layer entirely rather than dimmed (§7).
+        if (focusRef.current && !isSelected) continue
+
         features.push({
           type: 'Feature',
           properties: {
@@ -334,19 +367,27 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
 
       source.setData({ type: 'FeatureCollection', features })
 
-      // Keep the covered part of the selected route in step with the marker.
+      // Keep the route's three states in step with the marker. All three are
+      // slices of the same polyline at the same progress the timeline reads,
+      // so map and timeline can never disagree about what has been run.
       if (selectedRef.current) {
         const covered = map.getSource('covered-route')
+        const current = map.getSource('current-section')
         const coords = routeCoordinates(selectedRef.current)
         const state = trainStateAt(selectedRef.current, minutes)
-        if (covered && coords.length && state) {
-          const upto = Math.max(2, Math.round(state.position * (coords.length - 1)) + 1)
-          covered.setData({
-            type: 'FeatureCollection',
-            features: [
-              { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords.slice(0, upto) } },
-            ],
-          })
+
+        if (covered && current && coords.length && state) {
+          const last = coords.length - 1
+          const at = (t) => Math.min(Math.max(Math.round(t * last), 0), last)
+          const upto = Math.max(1, at(state.position))
+
+          covered.setData(lineFC(coords.slice(0, upto + 1)))
+
+          current.setData(
+            state.section
+              ? lineFC(coords.slice(at(state.section.tFrom), at(state.section.tTo) + 1))
+              : emptyFC,
+          )
         }
       }
 
@@ -363,12 +404,15 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
 
     const active = map.getSource('active-route')
     const covered = map.getSource('covered-route')
-    if (!active || !covered) return
+    const current = map.getSource('current-section')
+    if (!active || !covered || !current) return
 
     if (!selectedTrain) {
       active.setData(emptyFC)
       covered.setData(emptyFC)
+      current.setData(emptyFC)
       map.setPaintProperty('corridor', 'line-opacity', 0.75)
+      map.setPaintProperty('corridor-casing', 'line-opacity', 0.7)
       return
     }
 
@@ -378,19 +422,21 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
       features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }],
     })
 
-    // Everything else recedes so the chosen route dominates (§9).
-    map.setPaintProperty('corridor', 'line-opacity', 0.22)
+    // Everything else recedes so the chosen route dominates; in focused mode
+    // the other corridors go entirely, leaving geography and one journey.
+    map.setPaintProperty('corridor', 'line-opacity', focusMode ? 0 : 0.22)
+    map.setPaintProperty('corridor-casing', 'line-opacity', focusMode ? 0 : 0.7)
 
     const bounds = coords.reduce(
       (acc, c) => acc.extend(c),
       new LngLatBounds(coords[0], coords[0]),
     )
     map.fitBounds(bounds, {
-      padding: { top: 60, bottom: 60, left: 60, right: 60 },
+      padding: { top: 56, bottom: 56, left: 56, right: 56 },
       duration: prefersReducedMotion ? 0 : 900,
-      maxZoom: 7,
+      maxZoom: 7.5,
     })
-  }, [selectedTrain, ready, prefersReducedMotion])
+  }, [selectedTrain, ready, prefersReducedMotion, focusMode])
 
   // -- theme changes -------------------------------------------------------
   useEffect(() => {
@@ -409,6 +455,7 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
     set('active-route', 'line-color', p.activeRoute)
     set('active-casing', 'line-color', p.activeCasing)
     set('covered-route', 'line-color', p.coveredRoute)
+    set('current-section', 'line-color', p.currentSection)
     set('stations', 'circle-color', p.station)
     set('stations', 'circle-stroke-color', [
       'case',
@@ -427,11 +474,25 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
     if (!map) return
 
     const zoom = map.getZoom()
+
+    // In focused mode the selected service's own calls are the labels that
+    // matter — a passenger tracing their journey needs to read the stations
+    // it stops at, not whichever junctions happen to be nationally important.
+    const onRoute = new Set(
+      focusRef.current && selectedRef.current
+        ? (routes.get(selectedRef.current)?.stops ?? []).map((stop) => stop.code)
+        : [],
+    )
+
     const candidates = networkStations
-      .filter((s) => (zoom >= 5.4 ? true : s.major))
-      // Major stations claim their space first, so when two codes collide it
-      // is the minor one that drops out.
-      .sort((a, b) => Number(b.major) - Number(a.major))
+      .filter((s) => (onRoute.size ? onRoute.has(s.code) : zoom >= 5.4 ? true : s.major))
+      // Route calls, then major stations, claim their space first — when two
+      // codes collide it is the least important one that drops out.
+      .sort(
+        (a, b) =>
+          Number(onRoute.has(b.code)) - Number(onRoute.has(a.code)) ||
+          Number(b.major) - Number(a.major),
+      )
 
     // Greedy collision rejection: without it, codes that sit close together
     // (NDLS and NZM, BCT and CSMT) overprint into unreadable glyph soup.
@@ -461,11 +522,15 @@ export function RailMap({ selectedTrain, onSelectTrain, onSelectStation, followS
     refreshLabels()
     map.on('move', refreshLabels)
     map.on('zoom', refreshLabels)
+    map.on('idle', refreshLabels)
     return () => {
       map.off('move', refreshLabels)
       map.off('zoom', refreshLabels)
+      map.off('idle', refreshLabels)
     }
-  }, [ready, refreshLabels])
+    // selectedTrain/focusMode are read through refs inside refreshLabels, so
+    // they are listed here to force a recompute when the mode changes.
+  }, [ready, refreshLabels, selectedTrain, focusMode])
 
   const selectedState = trains.find((t) => t.number === selectedTrain)
 

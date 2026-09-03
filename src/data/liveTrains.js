@@ -211,6 +211,48 @@ export const liveTrains = [
       ['ADI', '11:25', null, 493],
     ],
   },
+  {
+    number: '12273',
+    name: 'Howrah – New Delhi Duronto Express',
+    category: 'Duronto',
+    baseDelayMin: 5,
+    stops: [
+      ['HWH', null, '08:35', 0],
+      ['DDU', '16:05', '16:15', 646],
+      ['CNB', '19:55', '20:00', 990],
+      ['NDLS', '00:05', null, 1451],
+    ],
+  },
+  {
+    number: '12909',
+    name: 'Bandra Terminus – Hazrat Nizamuddin Garib Rath',
+    category: 'Garib Rath',
+    baseDelayMin: 9,
+    stops: [
+      ['BCT', null, '16:15', 0],
+      ['ST', '18:48', '18:50', 263],
+      ['BRC', '20:12', '20:17', 392],
+      ['RTM', '23:15', '23:20', 654],
+      ['KOTA', '02:35', '02:40', 921],
+      ['NZM', '07:40', null, 1367],
+    ],
+  },
+  {
+    number: '12615',
+    name: 'Grand Trunk Express',
+    category: 'Express',
+    baseDelayMin: 19,
+    stops: [
+      ['MAS', null, '19:15', 0],
+      ['BZA', '01:20', '01:30', 431],
+      ['BPQ', '08:35', '08:40', 1041],
+      ['NGP', '11:25', '11:35', 1251],
+      ['BPL', '16:30', '16:40', 1642],
+      ['JHS', '20:55', '21:00', 1933],
+      ['AGC', '23:40', '23:42', 2035],
+      ['NDLS', '03:55', null, 2183],
+    ],
+  },
 ]
 
 /** Full station names for every code the fleet touches. */

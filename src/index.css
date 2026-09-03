@@ -50,6 +50,10 @@
 
   --danger: #a6392b;
   --danger-soft: #f3e1db;
+  /* Signal red as small text. Light mode can use the fill colour directly;
+     dark mode needs a brighter step, because the fill red sits at 3.95:1 on
+     the dark newsprint the bulletin is printed on. */
+  --danger-text: #a6392b;
 
   /* Burnt amber — caution, simulated/non-live data */
   --caution: #a66423;
@@ -61,6 +65,9 @@
   --brass: #96733e;
   --brass-bright: #b4935d;
   --brass-soft: #efe4cf;
+  /* Brass as small text needs its own darker step, exactly as --brand-text
+     does: the fill/border brass lands at 3.95:1 on newsprint. */
+  --brass-text: #6f5429;
 
   /* Section grounds. The page is deliberately not one colour top to bottom
      (§7): editorial passages sit on paper, the network sits on deep railway
@@ -76,6 +83,16 @@
   --on-deep: #eee6d8;
   --on-deep-muted: #a9bdb1;
   --on-deep-line: rgba(238, 230, 216, 0.16);
+
+  /* The navigation bar's resting tint: a pastel light brown, a shade warmer
+     and deeper than the page so the bar reads as a distinct plane without
+     going dark. */
+  --nav-tint: #e9dcc7;
+
+  /* Newsprint: the Alerts bulletin's paper. Warmer and very slightly duller
+     than --surface, because printed stock is not the same white as a screen
+     panel and the difference is what makes the page read as paper. */
+  --paper: #f6f1e3;
 
   /* Signal aspects. Fixed in both themes because they are read against the
      dark network ground either way, and because a signal that changed hue
@@ -128,6 +145,7 @@
 
   --danger: #bd5c46;
   --danger-soft: #2e1c17;
+  --danger-text: #d98570;
 
   --caution: #c98b4a;
   --caution-soft: #2c2015;
@@ -135,6 +153,7 @@
   --brass: #c3a46b;
   --brass-bright: #d8bd8a;
   --brass-soft: #2a2318;
+  --brass-text: #d8bd8a;
 
   /* Paper/sand grounds darken in dark mode; the deep grounds barely move —
      they are already a night control room. */
@@ -145,6 +164,10 @@
   --ground-brown: #241a15;
 
   --brand-text: #5fae86;
+
+  /* Dark mode keeps the same idea one octave down: a warm brown plane. */
+  --nav-tint: #241c15;
+  --paper: #1d1a14;
 
   --focus: #4c9069;
 
@@ -183,12 +206,14 @@
   --color-accent-soft: var(--accent-soft);
 
   --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
   --color-danger-soft: var(--danger-soft);
 
   --color-caution: var(--caution);
   --color-caution-soft: var(--caution-soft);
 
   --color-brass: var(--brass);
+  --color-brass-text: var(--brass-text);
   --color-brass-bright: var(--brass-bright);
   --color-brass-soft: var(--brass-soft);
 
@@ -388,6 +413,92 @@
     50% {
       transform: scale(1.35);
       opacity: 0;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+     The navigation bar, in two states.
+
+     At the top of the page it is a full-bleed deep instrument bar. Once the
+     page scrolls it lifts away from the edges and becomes a floating glass
+     pill — the same control, picked up off the page.
+
+     The dark state works by redefining the SURFACE and INK tokens on the
+     header element itself rather than by giving every child a dark variant.
+     Because the wordmark, the simulation clock and the icon buttons are all
+     already written against those tokens, they invert correctly for free —
+     and any control added to the bar later will too.
+  --------------------------------------------------------------------- */
+  .nav-shell {
+    padding: 0;
+    background-color: transparent;
+    transition:
+      background-color 320ms var(--ease-snap),
+      padding 320ms var(--ease-snap);
+  }
+
+  .nav-shell[data-tone='tinted'] {
+    /* Pastel light brown rather than an inverted dark bar: the navigation
+       should sit a step above the page, not shout over it. Ink stays the
+       normal dark ramp, so every child keeps its usual contrast. */
+    background-color: var(--nav-tint);
+    border-bottom: 1px solid color-mix(in srgb, var(--line-strong) 42%, transparent);
+  }
+
+  .nav-shell[data-tone='glass'] {
+    padding: 0.5rem 0.75rem;
+    border-bottom-color: transparent;
+  }
+
+  .nav-bar {
+    border: 1px solid transparent;
+    transition:
+      max-width 320ms var(--ease-snap),
+      border-radius 320ms var(--ease-snap),
+      border-color 320ms var(--ease-snap),
+      background-color 320ms var(--ease-snap),
+      box-shadow 320ms var(--ease-snap),
+      height 240ms var(--ease-snap);
+  }
+
+  .nav-shell[data-tone='glass'] .nav-bar {
+    border-radius: 9999px;
+    border-color: color-mix(in srgb, var(--line-strong) 55%, transparent);
+    /* Genuine glass: blurred and slightly saturated so the page reads through
+       it as colour rather than as grey. Tuned to 76% rather than lower — the
+       point is a pane you can see movement behind, not one you have to read
+       the navigation through. */
+    background-color: color-mix(in srgb, var(--surface) 76%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(1.7);
+    backdrop-filter: blur(20px) saturate(1.7);
+    box-shadow: var(--shadow-warm-md);
+  }
+
+  /* Browsers without backdrop-filter get an opaque bar rather than an
+     unreadable translucent one. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .nav-shell[data-tone='glass'] .nav-bar {
+      background-color: var(--surface);
+    }
+  }
+
+  /* The mobile sheet follows the bar's geometry rather than staying square
+     under a rounded bar. */
+  .nav-shell[data-tone='glass'] .nav-sheet {
+    margin: 0.5rem auto 0;
+    max-width: 42rem;
+    border-radius: 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--line-strong) 55%, transparent);
+    background-color: color-mix(in srgb, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.7);
+    backdrop-filter: blur(18px) saturate(1.7);
+    box-shadow: var(--shadow-warm-md);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-shell,
+    .nav-bar {
+      transition: none;
     }
   }
 

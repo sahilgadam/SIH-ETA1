@@ -7,60 +7,115 @@ import { LanguageProvider } from './context/LanguageProvider'
 import { NetworkProvider } from './context/NetworkProvider'
 import { SelectionProvider, useSelection } from './context/SelectionProvider'
 import { ThemeProvider } from './context/ThemeProvider'
+import { Alerts } from './pages/Alerts'
 import { Home } from './pages/Home'
-import { Journey } from './pages/Journey'
 import { LiveStatus } from './pages/LiveStatus'
 import { Results } from './pages/Results'
+import { TrainDetail } from './pages/TrainDetail'
+import { Stations } from './pages/Stations'
+import { Trains } from './pages/Trains'
 
 const HOME_VIEW = { name: 'home' }
-const LIVE_VIEW = { name: 'live' }
 
 /**
- * Four views, held in component state and mirrored into the history stack so
- * the browser's back button works. The URL is left alone: the landing page
- * uses hash anchors for its sections, and a static host has no routes to serve.
+ * Views are held in component state and mirrored into the history stack so the
+ * browser's back button works. The URL is left alone beyond its hash: a static
+ * host has no routes to serve.
  *
- * `#live` is treated as a view rather than an anchor, so the navbar's LIVE
- * STATUS entry opens the map screen while every other entry still scrolls the
- * landing page.
+ * Four of the navbar's entries name a *view* rather than a section of the
+ * landing page. They are listed here so the navbar, a deep link and the
+ * assistant all resolve them the same way.
  */
+const VIEW_FOR_HASH = {
+  '#live': { name: 'live' },
+  '#trains': { name: 'trains' },
+  '#stations': { name: 'stations' },
+  '#alerts': { name: 'alerts' },
+}
+
+const hashForView = (name) =>
+  Object.entries(VIEW_FOR_HASH).find(([, view]) => view.name === name)?.[0]
+
+/**
+ * The canonical train record lives at its own addressable hash, so a search
+ * result and "View train details" resolve to the identical URL and the page
+ * can be linked and shared. `#trains` (plural) is the class explorer, so the
+ * record is singular to avoid colliding with it.
+ */
+const TRAIN_HASH = /^#train\/(\w+)$/
+
+function viewForHash(hash) {
+  const record = TRAIN_HASH.exec(hash ?? '')
+  if (record) return { name: 'train', trainNumber: record[1] }
+  return VIEW_FOR_HASH[hash] ?? null
+}
+
 function Shell() {
-  // A direct hit on /#live should land on the map, so the navbar entry is a
-  // shareable link rather than only an in-page action.
   const [view, setView] = useState(() =>
-    typeof window !== 'undefined' && window.location.hash === '#live' ? LIVE_VIEW : HOME_VIEW,
+    (typeof window !== 'undefined' ? viewForHash(window.location.hash) : null) ?? HOME_VIEW,
   )
   const { registerNavigate } = useSelection()
 
   useEffect(() => {
     const onPopState = (event) => setView(event.state?.railsenseView ?? HOME_VIEW)
+
+    // A hash typed into the address bar (or a shared /#stations link followed
+    // from within the app) changes the fragment without reloading, so the
+    // shell has to resolve it too — otherwise the navbar highlights the new
+    // section while the page still shows the old one.
+    const onHashChange = () => {
+      const target = viewForHash(window.location.hash)
+      if (target) setView(target)
+    }
+
     window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
+    window.addEventListener('hashchange', onHashChange)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('hashchange', onHashChange)
+    }
   }, [])
 
-  const navigate = useCallback((next) => {
-    window.history.pushState({ railsenseView: next }, '')
+  const navigate = useCallback((next, hash) => {
+    window.history.pushState({ railsenseView: next }, '', hash ?? undefined)
     setView(next)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
-  const openLive = useCallback(() => navigate(LIVE_VIEW), [navigate])
+  /**
+   * The one way into the canonical train record. Both the search results and
+   * Live Status's "View train details" call this, so neither can drift onto
+   * its own detail screen (§8, §18).
+   */
+  const openTrainDetail = useCallback(
+    (trainNumber) => navigate({ name: 'train', trainNumber }, `#train/${trainNumber}`),
+    [navigate],
+  )
 
-  // The assistant can answer from anywhere, so it needs a way to bring the
-  // user to the map it has just acted on.
+  const openLive = useCallback(() => navigate({ name: 'live' }), [navigate])
+  const openTrains = useCallback(
+    (categoryId) => navigate({ name: 'trains', categoryId }),
+    [navigate],
+  )
+
+  // The assistant answers from anywhere, so it needs a way to bring the user
+  // to the map it has just acted on.
   useEffect(() => {
-    registerNavigate(() => setView((current) => {
-      if (current.name === 'live') return current
-      window.history.pushState({ railsenseView: LIVE_VIEW }, '')
-      window.scrollTo({ top: 0, behavior: 'instant' })
-      return LIVE_VIEW
-    }))
+    registerNavigate(() =>
+      setView((current) => {
+        if (current.name === 'live') return current
+        window.history.pushState({ railsenseView: { name: 'live' } }, '')
+        window.scrollTo({ top: 0, behavior: 'instant' })
+        return { name: 'live' }
+      }),
+    )
   }, [registerNavigate])
 
   const goHome = useCallback(
     (hash) => {
-      if (hash === '#live') {
-        openLive()
+      const target = VIEW_FOR_HASH[hash]
+      if (target) {
+        navigate(target)
         return
       }
       navigate(HOME_VIEW)
@@ -70,11 +125,6 @@ function Shell() {
         })
       }
     },
-    [navigate, openLive],
-  )
-
-  const openTrain = useCallback(
-    (trainNumber) => navigate({ name: 'journey', trainNumber }),
     [navigate],
   )
 
@@ -85,23 +135,29 @@ function Shell() {
       <SkipLink />
       <Navbar
         isHome={view.name === 'home'}
-        currentHref={view.name === 'live' ? '#live' : view.name === 'home' ? undefined : null}
+        currentHref={view.name === 'home' ? undefined : (hashForView(view.name) ?? null)}
         onNavigateHome={goHome}
       />
 
       <main id="main" tabIndex={-1} className="flex-1 outline-none">
         {view.name === 'home' ? (
-          <Home onSearch={openResults} onOpenTrain={openTrain} onOpenLive={openLive} />
+          <Home onSearch={openResults} onOpenLive={openLive} onOpenTrains={openTrains} />
         ) : null}
 
-        {view.name === 'live' ? <LiveStatus /> : null}
+        {view.name === 'live' ? <LiveStatus onOpenTrainDetail={openTrainDetail} /> : null}
+        {view.name === 'trains' ? (
+          <Trains initialCategory={view.categoryId} onOpenTrainDetail={openTrainDetail} />
+        ) : null}
+        {view.name === 'stations' ? <Stations onOpenTrainDetail={openTrainDetail} /> : null}
+        {view.name === 'alerts' ? <Alerts /> : null}
 
         {view.name === 'results' ? (
-          <Results criteria={view.criteria} onSelectTrain={openTrain} onBack={() => goHome()} />
+          <Results criteria={view.criteria} onSelectTrain={openTrainDetail} onBack={() => goHome()} />
         ) : null}
 
-        {view.name === 'journey' ? (
-          <Journey trainNumber={view.trainNumber} onBack={() => window.history.back()} />
+        {/* One record page, reached from search and from Live Status alike. */}
+        {view.name === 'train' ? (
+          <TrainDetail trainNumber={view.trainNumber} onBack={() => window.history.back()} />
         ) : null}
       </main>
 

@@ -18,6 +18,7 @@
  */
 
 import { liveTrains } from '../data/liveTrains'
+import { connectingServicesAt, predictConnection } from './connections'
 import { callsAtStation, formatClock, networkStations, stationByCode } from './railSim'
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,11 @@ import { callsAtStation, formatClock, networkStations, stationByCode } from './r
 const NAME_KEYWORDS = [
   'rajdhani', 'shatabdi', 'vande bharat', 'coromandel', 'tamil nadu',
   'karnataka', 'udyan', 'punjab mail', 'duronto', 'garib rath',
+]
+
+const CONNECTION_HINTS = [
+  'connection', 'connect', 'miss my', 'will i miss', 'change at', 'catch',
+  'interchange', 'transfer', 'कनेक्शन',
 ]
 
 const INTENT_HINTS = {
@@ -135,6 +141,11 @@ export function parseQuery(text) {
     if (stations.length) return { intent: 'arrivals', station: stations[0], text: clean }
     if (includesAny(lower, INTENT_HINTS.delay)) return { intent: 'delayedList', text: clean }
     return { intent: 'delayedList', text: clean }
+  }
+
+  // "will I miss my connection at Kanpur" / "what connects at NDLS"
+  if (includesAny(lower, CONNECTION_HINTS)) {
+    return { intent: 'connection', number, station: stations[0] ?? null, stations, text: clean }
   }
 
   if (includesAny(lower, INTENT_HINTS.next)) return { intent: 'next', number, stations, text: clean }
@@ -248,6 +259,61 @@ export function answerQuery(query, trains) {
     }
   }
 
+  // --- connections ---------------------------------------------------------
+  if (query.intent === 'connection') {
+    const { train } = resolveTrain(query.text, trains)
+    const station = query.station
+
+    // "what trains connect at NDLS" — no service named, so list the options.
+    if (!train) {
+      if (!station) return unknown
+      const calls = callsAtStation(station.code, trains).filter((c) => c.state !== 'past')
+      return {
+        key: calls.length ? 'ask.connectList' : 'ask.noArrivals',
+        params: { station: station.name, count: calls.length },
+        actions: [{ type: 'focusStation', code: station.code }],
+        results: calls.map((c) => c.train.number),
+      }
+    }
+
+    // A named service: predict against the tightest onward option there.
+    const stop =
+      (station && train.stops.some((s) => s.code === station.code) && station) ||
+      // No station given — use the change point the passenger is heading into.
+      stationByCode.get(train.nextStation.code)
+
+    if (!stop) return unknown
+
+    const options = connectingServicesAt(stop.code, train, trains).filter((o) => o.transferMin > -60)
+    const best = options.find((o) => o.transferMin >= 0) ?? options[0]
+    if (!best) {
+      return {
+        key: 'ask.noConnections',
+        params: { station: stop.name, train: train.number },
+        actions: [{ type: 'selectTrain', number: train.number }],
+        results: [train.number],
+      }
+    }
+
+    const prediction = predictConnection({ train, code: stop.code, connecting: best.train, trains })
+    return {
+      key: prediction.status === 'missed' ? 'ask.connectMissed' : prediction.status === 'at-risk' ? 'ask.connectRisk' : 'ask.connectOk',
+      params: {
+        train: train.number,
+        connecting: prediction.connecting.number,
+        station: prediction.station.name,
+        minutes: Math.abs(prediction.transferMin),
+        arrival: formatClock(prediction.arrival),
+        departure: formatClock(prediction.departure),
+      },
+      actions: [
+        { type: 'selectTrain', number: train.number },
+        { type: 'highlightStop', code: stop.code },
+      ],
+      results: [train.number, prediction.connecting.number],
+    }
+  }
+
   // --- single-service questions -------------------------------------------
   const resolved = resolveTrain(query.text, trains)
   if (!resolved.train) {
@@ -353,6 +419,7 @@ export const SAMPLE_QUESTIONS = [
   'Which trains are delayed?',
   'Trains from New Delhi to Mumbai Central',
   'Show me trains arriving at NDLS',
+  'Will I miss my connection at Kanpur on 12301?',
 ]
 
 /** Every service, for the search box (§6). */
