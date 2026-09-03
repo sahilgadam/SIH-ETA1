@@ -70,7 +70,11 @@ export default function App() {
             ) : null}
 
             {view.name === 'journey' ? (
-              <Journey trainNumber={view.trainNumber} onBack={() => window.history.back()} />
+              <Journey
+                trainNumber={view.trainNumber}
+                onBack={() => window.history.back()}
+                onOpenTrain={openTrain}
+              />
             ) : null}
           </main>
 

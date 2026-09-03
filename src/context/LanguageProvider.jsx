@@ -27,11 +27,21 @@ export function LanguageProvider({ children }) {
     }
   }, [language])
 
-  /** Look up a copy key, filling {placeholders} from `vars`. */
+  /**
+   * Look up a copy key, filling {placeholders} from `vars`.
+   *
+   * When `vars.minutes` is exactly 1 and the dictionary carries a `<key>.one`
+   * variant, that one wins — otherwise generated sentences read "1 minutes".
+   * Keys without a `.one` sibling behave exactly as before.
+   */
   const t = useCallback(
     (key, vars) => {
       const dictionary = translations[language] ?? translations[defaultLanguage]
-      const value = dictionary[key] ?? translations[defaultLanguage][key] ?? key
+      const singular = vars?.minutes === 1 ? `${key}.one` : null
+      const lookup = singular && (dictionary[singular] ?? translations[defaultLanguage][singular])
+        ? singular
+        : key
+      const value = dictionary[lookup] ?? translations[defaultLanguage][lookup] ?? key
       if (!vars) return value
       return value.replace(/\{(\w+)\}/g, (match, name) =>
         Object.hasOwn(vars, name) ? String(vars[name]) : match,

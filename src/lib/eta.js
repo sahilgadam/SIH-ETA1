@@ -121,7 +121,6 @@ export function getPredictionBreakdown(journey) {
     predictedDelayMinutes: predictedDelay,
     netChangeMinutes: predictedDelay - currentDelay,
     factors: journey.prediction.factors,
-    explanationKey: journey.prediction.explanationKey,
   }
 }
 

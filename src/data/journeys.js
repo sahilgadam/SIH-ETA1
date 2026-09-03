@@ -22,6 +22,13 @@
  * Predicted arrival/departure times are never written here. They are derived in
  * `src/lib/eta.js` as `scheduled + predictedDelayMinutes`, so the rule
  * "RailSense ETA − Scheduled = displayed delay" holds by construction.
+ *
+ * SINCE THE SIMULATION EXISTS, `predictedDelayMinutes` on a station ahead of the
+ * train is no longer displayed directly. It is the *baseline delay curve* for
+ * the route — the shape of where this line loses and gains time — which
+ * `src/lib/simulation.js` integrates forward from wherever the train actually
+ * is, scaled by how each factor is currently running. The curve is the input;
+ * the displayed forecast is the output.
  */
 
 /**
@@ -83,9 +90,9 @@ const rajdhani12951 = {
       st('BL',   'Valsad',          '18:52', '18:54', 3, 199, 'completed'),
     ]),
     seg('ST', 'BRC', 129, [
-      st('BH',   'Bharuch Jn',      '19:58', '20:00', 4, 322, 'completed'),
-      st('AKV',  'Ankleshwar Jn',   '20:06', '20:08', 4, 332, 'completed'),
-      st('MYG',  'Miyagam Karjan',  '20:26', '20:27', 4, 361, 'completed'),
+      st('AKV',  'Ankleshwar Jn',   '19:55', '19:57', 4, 313, 'completed'),
+      st('BH',   'Bharuch Jn',      '20:06', '20:08', 4, 322, 'completed'),
+      st('MYG',  'Miyagam Karjan',  '20:28', '20:29', 4, 361, 'completed'),
     ]),
     seg('BRC', 'RTM', 262, [
       st('GDA',  'Godhra Jn',       '21:38', '21:40', 5, 465, 'completed'),
@@ -120,8 +127,9 @@ const rajdhani12951 = {
   },
 
   /**
-   * How the forecast moves from the current delay to the destination delay.
-   * The factors sum to (destination predicted delay − current delay).
+   * The mix of causes on this route. The simulation uses these as attribution
+   * weights — what share of any minute lost here is congestion, what share is a
+   * restriction — and recomputes the actual minutes from the train's position.
    */
   prediction: {
     factors: [
@@ -131,7 +139,20 @@ const rajdhani12951 = {
       { id: 'weather', labelKey: 'why.weather', minutes: 0 },
       { id: 'recovery', labelKey: 'why.recovery', minutes: -2 },
     ],
-    explanationKey: 'why.explain12951',
+  },
+
+  /**
+   * The parts of the outlook that cannot be derived from the factors above.
+   * Recovery minutes, additional delay and weather impact are NOT stored here —
+   * they are read straight off `prediction.factors` in `src/lib/prediction.js`
+   * so the recovery panel and "Why this ETA?" can never disagree.
+   */
+  outlook: {
+    recoverySectionKey: 'recovery.section12951',
+    // No weather factor on this run, so no weather panel is shown.
+    weather: null,
+    // Delay on arrival at the destination on the last five runs, most recent first.
+    recentArrivalDelays: [12, 6, 18, 9, 4],
   },
 }
 
@@ -205,7 +226,12 @@ const rajdhani12301 = {
       { id: 'running-speed', labelKey: 'why.runningSpeed', minutes: -3 },
       { id: 'recovery', labelKey: 'why.recovery', minutes: -7 },
     ],
-    explanationKey: 'why.explain12301',
+  },
+
+  outlook: {
+    recoverySectionKey: 'recovery.section12301',
+    weather: { conditionKey: 'weather.rain', nearStationCode: 'PRYJ' },
+    recentArrivalDelays: [24, 31, 15, 22, 27],
   },
 }
 
@@ -278,7 +304,12 @@ const shatabdi12002 = {
       { id: 'weather', labelKey: 'why.weather', minutes: 0 },
       { id: 'recovery', labelKey: 'why.recovery', minutes: -1 },
     ],
-    explanationKey: 'why.explain12002',
+  },
+
+  outlook: {
+    recoverySectionKey: 'recovery.section12002',
+    weather: null,
+    recentArrivalDelays: [5, 2, 8, 3, 6],
   },
 }
 

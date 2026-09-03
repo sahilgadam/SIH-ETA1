@@ -22,10 +22,21 @@ function Minutes({ value, tone = 'auto' }) {
  * Explains the gap between how late the train is now and how late RailSense
  * expects it to be at the destination — not a restatement of either figure.
  *
- * These are illustrative prototype inputs, and the panel says so.
+ * The paragraph is generated from the same factors the table below itemises
+ * (`getEtaExplanation`), so it re-words itself as the forecast moves instead of
+ * describing conditions the train has already left behind.
  */
-export function WhyThisETA({ breakdown, destinationName, className }) {
+export function WhyThisETA({ breakdown, explanation, destinationName, className }) {
   const { t } = useLanguage()
+
+  // Factor labels arrive as keys so the prose names a cause exactly the way the
+  // table row beneath it does.
+  const say = ({ key, params }) =>
+    t(key, {
+      ...params,
+      ...(params.causeKey ? { cause: t(params.causeKey) } : null),
+      ...(params.sectionKey ? { section: t(params.sectionKey) } : null),
+    })
 
   return (
     <section
@@ -35,7 +46,9 @@ export function WhyThisETA({ breakdown, destinationName, className }) {
       <h2 id="why-title" className="text-base font-bold text-fg">
         {t('why.title')}
       </h2>
-      <p className="mt-1.5 text-sm leading-6 text-fg-muted">{t(breakdown.explanationKey)}</p>
+      <p className="mt-1.5 text-sm leading-6 text-fg-muted">
+        {explanation.map(say).join(' ')}
+      </p>
 
       <dl className="mt-4 border-t border-line pt-3">
         <div className="flex items-center justify-between gap-4">

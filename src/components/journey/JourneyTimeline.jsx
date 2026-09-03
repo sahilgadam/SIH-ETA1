@@ -23,6 +23,9 @@ export function JourneyTimeline({ journey }) {
   const scrollRef = useRef(null)
   const railRef = useRef(null)
   const markerRef = useRef(null)
+  // The slide-in from the origin plays once. After that the marker simply
+  // tracks the train, which the simulation moves several times a second.
+  const enteredRef = useRef(false)
 
   // Predictions resolved once for the whole rail.
   const majorStations = useMemo(() => getMajorStations(journey), [journey])
@@ -63,11 +66,16 @@ export function JourneyTimeline({ journey }) {
 
   /** Called on every frame of a segment animation so the marker tracks the rail. */
   const handleLayoutTick = useCallback(() => {
+    // The rail itself is moving under the marker here, so it has to keep up
+    // frame by frame — the tracking transition would make it lag behind.
+    if (markerRef.current) markerRef.current.dataset.tracking = 'off'
     placeMarker(measureMarkerX(), false)
   }, [measureMarkerX, placeMarker])
 
   // Slide the train in from the origin when the journey first renders.
   useLayoutEffect(() => {
+    if (enteredRef.current) return
+
     const marker = markerRef.current
     const target = measureMarkerX()
     if (!marker || target == null) return
@@ -75,6 +83,7 @@ export function JourneyTimeline({ journey }) {
     if (prefersReducedMotion) {
       marker.style.transform = `translateX(${target}px)`
       marker.style.opacity = '1'
+      enteredRef.current = true
       return
     }
 
@@ -95,10 +104,24 @@ export function JourneyTimeline({ journey }) {
       duration: 780,
       delay: 140,
       ease: 'outQuad',
+      onComplete: () => {
+        enteredRef.current = true
+      },
     })
 
     return () => animation.revert()
   }, [majorStations, measureMarkerX, prefersReducedMotion])
+
+  // Follow the train once it is on the rail. A CSS transition carries the
+  // marker between simulation ticks, so movement reads as continuous without
+  // running an animation library four times a second.
+  useEffect(() => {
+    const marker = markerRef.current
+    if (!marker || !enteredRef.current) return
+
+    marker.dataset.tracking = 'on'
+    placeMarker(measureMarkerX(), false)
+  }, [measureMarkerX, placeMarker])
 
   // Keep the marker glued to the rail when the viewport changes.
   useEffect(() => {

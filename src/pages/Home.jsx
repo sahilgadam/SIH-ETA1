@@ -6,7 +6,7 @@ import { ValueStrip } from '../components/home/ValueStrip'
 export function Home({ onSearch, onOpenTrain }) {
   return (
     <>
-      <Hero onSearch={onSearch} />
+      <Hero onSearch={onSearch} onOpenTrain={onOpenTrain} />
       <div className="rail-rule" aria-hidden="true" />
       <ValueStrip />
       <PopularTrains onSelectTrain={(train) => onOpenTrain(train.number)} />

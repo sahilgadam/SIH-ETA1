@@ -1,11 +1,12 @@
 import { TrainTrack } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageProvider'
 import { useEntrance } from '../../hooks/useEntrance'
+import { VoiceSearch } from '../voice/VoiceSearch'
 import { DepartureBoardCard } from './DepartureBoardCard'
 import { RouteSearchForm } from './RouteSearchForm'
 import { TrainSearchForm } from './TrainSearchForm'
 
-export function Hero({ onSearch }) {
+export function Hero({ onSearch, onOpenTrain }) {
   const { t } = useLanguage()
   const containerRef = useEntrance({ delay: 60 })
 
@@ -47,6 +48,17 @@ export function Hero({ onSearch }) {
               </div>
 
               <TrainSearchForm onSearch={onSearch} />
+
+              <div className="my-5 flex items-center gap-3" aria-hidden="true">
+                <span className="h-px flex-1 bg-line" />
+                <span className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
+                  {t('common.or')}
+                </span>
+                <span className="h-px flex-1 bg-line" />
+              </div>
+
+              {/* Voice is a third way into the same search, not a separate page. */}
+              <VoiceSearch bare onOpenTrain={onOpenTrain} />
             </div>
           </div>
 

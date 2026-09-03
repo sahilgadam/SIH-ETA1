@@ -1,14 +1,17 @@
 import { TrainFront } from 'lucide-react'
 
 /**
- * The train's position on the rail. The outer element carries no transform of
- * its own — Anime.js animates its translateX as the position changes.
+ * The train's position on the rail.
+ *
+ * The outer element carries no transform of its own. Anime.js slides it in on
+ * first paint; after that `data-tracking="on"` hands movement to a CSS
+ * transition, so following the simulation costs nothing per tick.
  */
 export function TrainMarker({ markerRef, label }) {
   return (
     <div
       ref={markerRef}
-      className="pointer-events-none absolute left-0 top-1/2 z-30"
+      className="railsense-train-track pointer-events-none absolute left-0 top-1/2 z-30"
       style={{ willChange: 'transform' }}
     >
       <div className="flex -translate-x-1/2 -translate-y-full flex-col items-center">

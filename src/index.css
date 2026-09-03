@@ -173,3 +173,106 @@
     background-repeat: no-repeat, no-repeat, repeat-x;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Leaflet
+   The map lives inside the app's surfaces, so Leaflet's own chrome — popups,
+   attribution, the zoom focus ring — is restyled onto the design tokens rather
+   than left in its default blue-and-white.
+--------------------------------------------------------------------------- */
+@layer components {
+  .leaflet-container {
+    font-family: var(--font-sans);
+    background: var(--sunken);
+  }
+
+  /* Tiles are light-authored; nudge the dark basemap to sit on our surface. */
+  .dark .leaflet-tile-pane {
+    filter: brightness(0.92) saturate(0.85);
+  }
+
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--surface);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 0.5rem;
+  }
+
+  .leaflet-popup-content {
+    margin: 0.875rem 1rem;
+    line-height: 1.5;
+  }
+
+  .leaflet-popup-close-button {
+    color: var(--fg-subtle) !important;
+    padding: 0.5rem 0.5rem 0 0 !important;
+  }
+
+  .leaflet-popup-close-button:hover {
+    color: var(--fg) !important;
+  }
+
+  .leaflet-container a.leaflet-popup-close-button:focus-visible,
+  .leaflet-container .leaflet-interactive:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .leaflet-control-attribution {
+    background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+    color: var(--fg-subtle) !important;
+    font-size: 0.625rem;
+  }
+
+  .leaflet-control-attribution a {
+    color: var(--fg-muted) !important;
+  }
+
+  /* The train marker: a filled dot with a soft halo so it stays findable
+     against both basemaps without being a loud pin. */
+  .railsense-train-dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    margin: 4px;
+    border-radius: 9999px;
+    background: var(--marker);
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 28%, transparent);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .railsense-train-dot {
+      animation: railsense-pulse 2.4s ease-in-out infinite;
+    }
+  }
+
+  @keyframes railsense-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--marker) 28%, transparent);
+    }
+    50% {
+      box-shadow: 0 0 0 8px color-mix(in srgb, var(--marker) 8%, transparent);
+    }
+  }
+}
+
+@layer components {
+  /* The timeline marker follows the simulation between ticks. Tracking is off
+     while a segment is expanding, because the rail is moving under the marker
+     and it has to keep up frame by frame instead of easing behind. */
+  .railsense-train-track[data-tracking='on'] {
+    transition: transform 420ms linear;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .railsense-train-track[data-tracking='on'] {
+      transition: none;
+    }
+  }
+}

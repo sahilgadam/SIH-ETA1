@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "document-skills@anthropic-agent-skills": true,
+    "example-skills@anthropic-agent-skills": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": true,
+    "threejs-webgl@claude-design-skillstack": true,
+    "gsap-scrolltrigger@claude-design-skillstack": true,
+    "react-three-fiber@claude-design-skillstack": true,
+    "core-3d-animation@claude-design-skillstack": true,
+    "extended-3d-scroll@claude-design-skillstack": true,
+    "animation-components@claude-design-skillstack": true,
+    "authoring-motion@claude-design-skillstack": true,
+    "meta-skills@claude-design-skillstack": true
+  }
+}

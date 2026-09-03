@@ -3,7 +3,7 @@ import { getJourney } from '../data/journeys'
 import { useLanguage } from '../context/LanguageProvider'
 import { Button } from '../components/ui/Button'
 
-export function Journey({ trainNumber, onBack }) {
+export function Journey({ trainNumber, onBack, onOpenTrain }) {
   const { t } = useLanguage()
   const journey = getJourney(trainNumber)
 
@@ -19,5 +19,5 @@ export function Journey({ trainNumber, onBack }) {
     )
   }
 
-  return <TrainJourney journey={journey} onBack={onBack} />
+  return <TrainJourney journey={journey} onBack={onBack} onOpenTrain={onOpenTrain} />
 }
