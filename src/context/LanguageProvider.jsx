@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { defaultLanguage, languages, translations } from '../i18n/translations'
+import { defaultLanguage, languages, translate, translations } from '../i18n/translations'
 
 const STORAGE_KEY = 'railsense-language'
 
@@ -28,27 +28,14 @@ export function LanguageProvider({ children }) {
   }, [language])
 
   /**
-   * Look up a copy key, filling {placeholders} from `vars`.
+   * Look up a copy key in the current interface language, filling
+   * {placeholders} from `vars`.
    *
-   * When `vars.minutes` is exactly 1 and the dictionary carries a `<key>.one`
-   * variant, that one wins — otherwise generated sentences read "1 minutes".
-   * Keys without a `.one` sibling behave exactly as before.
+   * The lookup itself lives in `i18n/translations` so that spoken
+   * announcements — which resolve against their own chosen language rather
+   * than the interface's — go through exactly the same rules.
    */
-  const t = useCallback(
-    (key, vars) => {
-      const dictionary = translations[language] ?? translations[defaultLanguage]
-      const singular = vars?.minutes === 1 ? `${key}.one` : null
-      const lookup = singular && (dictionary[singular] ?? translations[defaultLanguage][singular])
-        ? singular
-        : key
-      const value = dictionary[lookup] ?? translations[defaultLanguage][lookup] ?? key
-      if (!vars) return value
-      return value.replace(/\{(\w+)\}/g, (match, name) =>
-        Object.hasOwn(vars, name) ? String(vars[name]) : match,
-      )
-    },
-    [language],
-  )
+  const t = useCallback((key, vars) => translate(language, key, vars), [language])
 
   const value = useMemo(
     () => ({ language, setLanguage, languages, t }),

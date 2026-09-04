@@ -158,14 +158,80 @@ export function startListening({
   }
 }
 
-/** Speaks a string, doing nothing when synthesis is unavailable. */
-export function speak(text, lang) {
-  if (!isSpeechSupported() || !text) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = lang
-  utterance.rate = 0.98
-  window.speechSynthesis.speak(utterance)
+/**
+ * The best installed voice for a language tag, or null.
+ *
+ * Setting `utterance.lang` alone is only a hint: Chrome honours it, Safari
+ * frequently reads Hindi text in the default English voice regardless. Naming
+ * the voice explicitly is what actually makes a Hindi announcement sound like
+ * Hindi, and returning null tells the caller there is no such voice — which is
+ * the cue to keep showing the text instead of pretending it was spoken.
+ */
+export function voiceFor(lang) {
+  if (!isSpeechSupported() || !lang) return null
+
+  let voices = []
+  try {
+    voices = window.speechSynthesis.getVoices() ?? []
+  } catch {
+    return null
+  }
+
+  const wanted = lang.toLowerCase()
+  const base = wanted.split('-')[0]
+  return (
+    voices.find((voice) => voice.lang?.toLowerCase() === wanted) ??
+    voices.find((voice) => voice.lang?.toLowerCase().replace('_', '-') === wanted) ??
+    voices.find((voice) => voice.lang?.toLowerCase().startsWith(base)) ??
+    null
+  )
+}
+
+/**
+ * Voices arrive asynchronously in Chrome: the first `getVoices()` after load
+ * returns an empty list and a `voiceschanged` event follows. Callers that want
+ * to know whether a language can actually be spoken have to wait for it.
+ * Returns an unsubscribe function, so the listener dies with the component.
+ */
+export function onVoicesChanged(handler) {
+  if (!isSpeechSupported() || typeof handler !== 'function') return () => {}
+  const synth = window.speechSynthesis
+  synth.addEventListener('voiceschanged', handler)
+  return () => synth.removeEventListener('voiceschanged', handler)
+}
+
+/** True while something is being spoken, so a caller can wait its turn. */
+export function isSpeaking() {
+  if (!isSpeechSupported()) return false
+  return window.speechSynthesis.speaking || window.speechSynthesis.pending
+}
+
+/**
+ * Speak a string.
+ *
+ * Returns true only if the utterance was actually handed to the synthesiser,
+ * so a caller can fall back to showing the text when it was not. `interrupt`
+ * is the existing behaviour for an answer being read back — the newest answer
+ * replaces whatever was being said. Announcements pass false and queue instead,
+ * because cutting one announcement off mid-sentence with the next is worse
+ * than letting them follow one another.
+ */
+export function speak(text, lang, { interrupt = true, rate = 0.98 } = {}) {
+  if (!isSpeechSupported() || !text) return false
+
+  try {
+    if (interrupt) window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = lang
+    utterance.rate = rate
+    const voice = voiceFor(lang)
+    if (voice) utterance.voice = voice
+    window.speechSynthesis.speak(utterance)
+    return true
+  } catch {
+    // Synthesis can be present and still refuse (no voices, autoplay policy).
+    return false
+  }
 }
 
 export function stopSpeaking() {

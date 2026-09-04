@@ -12,6 +12,7 @@ import {
   stopSpeaking,
 } from '../../lib/speech'
 import { Mono } from '../ui/Mono'
+import { TrainAnnouncements } from './TrainAnnouncements'
 
 /**
  * Ask RailSense.
@@ -24,6 +25,11 @@ import { Mono } from '../ui/Mono'
  * Answers are computed from the live simulation, so this is not a scripted
  * chatbot; and every answer carries actions that actually drive the map and
  * the timeline rather than only describing them.
+ *
+ * Voice Mode also *speaks* — see `TrainAnnouncements` below the ask box, which
+ * reads station-style announcements for the train in view in English or Hindi.
+ * Asking and announcing are separate concerns sharing one panel: the question
+ * pipeline below is untouched by it.
  */
 
 const RECOGNITION_LANG = { en: 'en-IN', hi: 'hi-IN' }
@@ -36,7 +42,7 @@ const ERROR_KEYS = {
   unknown: 'ask.micError',
 }
 
-export function AskRailSense({ onAfterAnswer }) {
+export function AskRailSense({ onAfterAnswer, trainNumber }) {
   const { t, language } = useLanguage()
   const { trains } = useNetwork()
   const { applyActions, selectTrain } = useSelection()
@@ -277,6 +283,9 @@ export function AskRailSense({ onAfterAnswer }) {
           </div>
         ) : null}
       </div>
+
+      {/* Spoken announcements for the train in view (§3). */}
+      <TrainAnnouncements trainNumber={trainNumber} />
 
       <p className="font-mono text-[0.5625rem] uppercase tracking-[var(--tracking-rail)] text-fg-subtle">
         {t('ask.simulated')}

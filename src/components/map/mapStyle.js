@@ -1,17 +1,25 @@
 /**
  * The RailSense map style.
  *
- * This is a bespoke style, not a tile provider's. There is no raster basemap
- * and no vector tile service behind it: the ground is a solid parchment fill,
- * the landmass and state hairlines are two small GeoJSON files we ship
- * ourselves, and everything above that is drawn from the simulation. That is
- * a deliberate choice — it is why the map cannot look like Google Maps, and
- * it means the map has no API key, no attribution requirement and no runtime
- * dependency on a third party.
+ * The ground is a real basemap: Esri's public raster tiles, so the map shows
+ * India as it is — coastline, rivers, state borders, cities, roads and the
+ * countries around it — rather than a flat plate with station codes on it.
+ * The tiles need no API key and no account, which is what makes them safe to
+ * ship straight to a static host.
  *
- * It also means no `glyphs` endpoint, so the style contains no text layers.
- * Station names are rendered as DOM overlays in the site's own typefaces,
- * which we could not have matched with map fonts anyway.
+ * Two things keep a stock basemap looking like RailSense rather than like a
+ * generic web map: the raster is desaturated a little, and a parchment (or, in
+ * dark mode, an ink) wash is laid over it at low opacity. Everything above the
+ * wash — corridors, the selected route, stations, trains — is drawn from the
+ * simulation in the palette below.
+ *
+ * `public/geo/india.json` is still drawn, underneath the tiles. It is invisible
+ * whenever the tiles load and is there for the case where they do not: the map
+ * degrades to the landmass it always had instead of to a blank rectangle.
+ *
+ * The style carries no `glyphs` endpoint, so it has no text layers. Station
+ * names are DOM overlays in the site's own typefaces, which map fonts could
+ * not have matched anyway.
  *
  * MapLibre cannot read CSS custom properties, so these mirror the tokens in
  * `src/index.css` by hand — literals rather than getComputedStyle reads,
@@ -19,49 +27,144 @@
  * would pick up the previous theme.
  */
 
+/**
+ * Esri's public ArcGIS Online basemaps.
+ *
+ * Chosen over the obvious alternatives for reasons that only show up in
+ * production: CARTO's keyless endpoints now return tiles stamped API KEY
+ * REQUIRED across the middle of them, and openstreetmap.org's own tile servers
+ * block applications under their usage policy — both fail on the deployed site
+ * while looking fine in a local test. These need no key, no account and no
+ * origin allow-list, and they carry an attribution requirement we meet in the
+ * corner of the map.
+ *
+ * Note the `{z}/{y}/{x}` order: ArcGIS puts row before column, the reverse of
+ * every XYZ scheme, and getting it the usual way round yields a map of
+ * somewhere else entirely.
+ */
+const esriTiles = (service) => [
+  `https://server.arcgisonline.com/ArcGIS/rest/services/${service}/MapServer/tile/{z}/{y}/{x}`,
+]
+
+const ESRI_ATTRIBUTION =
+  'Tiles <a href="https://www.esri.com" target="_blank" rel="noreferrer">© Esri</a> — ' +
+  'Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, METI, TomTom'
+
+/**
+ * The credit RailSense prints in the corner of the map.
+ *
+ * Rendered by the component rather than by MapLibre's own AttributionControl,
+ * which insists on a pill of its default sans-serif wide enough to cover a
+ * third of a panel this size. Same obligation, met in the site's own type: the
+ * short form is on screen and the full source list is on the link's tooltip.
+ */
+export const BASEMAP_CREDIT = {
+  label: 'Tiles © Esri',
+  title: 'Tiles © Esri — Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, METI, TomTom',
+  href: 'https://www.esri.com',
+}
+
+/**
+ * World Street Map in daylight — its warm stone-and-cream cartography is
+ * already most of the way to RailSense's parchment, so it needs steadying
+ * rather than repainting. At night the Dark Gray Canvas, which ships its
+ * labels as a separate transparent overlay: `labels` is that second layer, and
+ * a basemap without one simply leaves it switched off.
+ */
+export const BASEMAPS = {
+  light: {
+    base: esriTiles('World_Street_Map'),
+    labels: null,
+    attribution: ESRI_ATTRIBUTION,
+    // Calmed down so the railway on top of it is unmistakably the subject.
+    saturation: -0.22,
+    contrast: -0.05,
+    brightnessMin: 0.05,
+    brightnessMax: 1,
+  },
+  dark: {
+    base: esriTiles('Canvas/World_Dark_Gray_Base'),
+    labels: esriTiles('Canvas/World_Dark_Gray_Reference'),
+    attribution: ESRI_ATTRIBUTION,
+    saturation: -0.08,
+    contrast: 0.06,
+    brightnessMin: 0.03,
+    // Esri's Dark Gray Canvas is a mid charcoal; RailSense's night page is
+    // nearly black. Pulled down here and washed with ink below, so the panel
+    // sits in the page rather than glowing out of it.
+    brightnessMax: 0.72,
+  },
+}
+
 export const MAP_PALETTE = {
   light: {
-    void: '#e7dccb', // sea / outside the landmass
+    void: '#dfe7ea', // sea, and whatever the tiles have not covered yet
+    // The wash that pulls the basemap towards parchment.
+    tint: '#f4f0e7',
+    tintOpacity: 0.16,
+
+    // Fallback geography, drawn under the tiles (see the note above).
     land: '#f4efe4',
     landEdge: '#c3ae91',
     state: '#ded0b9',
-    corridor: '#b09477',
-    corridorCasing: '#f4efe4',
-    // The selected journey in three states (§21). Read as a sequence:
-    // remaining is the lightest, already-run is the darkest, and the section
-    // the train is inside is the one bright band.
-    activeRoute: '#c9a970',   // remaining — light brass
-    activeCasing: '#fbf7ef',
-    coveredRoute: '#3b2920',  // already run — deep brown, darkest on the map
-    currentSection: '#96733e', // running now — muted brass, strongest weight
+
+    // Every other service's corridor: present, never competing.
+    corridor: '#7a6248',
+    corridorCasing: '#f8f5ee',
+
+    // The selected journey, read as a sequence (§21). A light halo under the
+    // whole route is what lets it hold its own over a map with roads on it.
+    routeHalo: '#f8f5ee',
+    routeAhead: '#8d7357', // still to run — quiet warm grey-brown
+    routeCovered: '#2c2019', // already run — deepest ink on the map
+    routeCurrent: '#b8791f', // running now — the one bright band
+    routeTie: 'rgba(248,245,238,0.75)', // sleeper hatch across the whole line
+
     station: '#f8f5ee',
-    stationEdge: '#7a6248',
+    stationEdge: '#2c2019',
     stationMajor: '#96733e',
-    label: '#3b2920',
-    labelHalo: 'rgba(247,242,233,0.9)',
+    stopFill: '#f8f5ee',
+    stopEdge: '#2c2019',
+    terminusFill: '#2c2019',
+
+    label: '#2c2019',
+    labelHalo: 'rgba(248,245,238,0.92)',
     congestion: '#b45c3c',
   },
   dark: {
-    void: '#101a16',
+    void: '#0d1512',
+    tint: '#17231f',
+    // Heavier than the daylight wash, and drawn *under* the place-name
+    // overlay, so the ground darkens while the city names stay crisp.
+    tintOpacity: 0.46,
+
     land: '#1b2a24',
     landEdge: '#33463c',
     state: '#243329',
-    corridor: '#6c5644',
-    corridorCasing: '#1b2a24',
-    activeRoute: '#8a7248',
-    activeCasing: '#101a16',
-    coveredRoute: '#e2d6c0',  // on a dark map the already-run line is the pale one
-    currentSection: '#d8bd8a',
+
+    corridor: '#8a7561',
+    corridorCasing: '#101a16',
+
+    routeHalo: '#101a16',
+    routeAhead: '#7d6a52',
+    routeCovered: '#ece2ce', // on a dark map the already-run line is the pale one
+    routeCurrent: '#e0bb74',
+    routeTie: 'rgba(16,26,22,0.7)',
+
     station: '#101a16',
-    stationEdge: '#9d8a72',
+    stationEdge: '#cbb9a2',
     stationMajor: '#c3a46b',
-    label: '#e9e0d1',
-    labelHalo: 'rgba(16,26,22,0.9)',
+    stopFill: '#17231f',
+    stopEdge: '#f4f0e7',
+    terminusFill: '#f4f0e7',
+
+    label: '#f4f0e7',
+    labelHalo: 'rgba(16,26,22,0.92)',
     congestion: '#d16a59',
   },
 }
 
-/** Status colours for train icons — fixed across themes, like signal aspects. */
+/** Status colours for train markers — fixed across themes, like signal aspects. */
 export const TRAIN_COLORS = {
   'on-time': '#3e7455',
   watch: '#b97732',
@@ -70,6 +173,7 @@ export const TRAIN_COLORS = {
 }
 
 export const getMapPalette = (theme) => MAP_PALETTE[theme] ?? MAP_PALETTE.light
+export const getBasemap = (theme) => BASEMAPS[theme] ?? BASEMAPS.light
 
 /** The India view the map opens on and resets to. */
 export const INDIA_VIEW = {
@@ -78,9 +182,10 @@ export const INDIA_VIEW = {
 }
 
 /**
- * A complete MapLibre style with only a background layer. Every other source
- * and layer is added in `RailMap` once the GeoJSON has loaded, so the map can
- * paint immediately instead of waiting on a network round trip.
+ * A complete MapLibre style with only a background layer. The basemap and
+ * every simulation layer is added in `RailMap` once the map is up, so the
+ * panel paints its own colour immediately instead of sitting blank until the
+ * first tile lands.
  */
 export function baseStyle(palette) {
   return {

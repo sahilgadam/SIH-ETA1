@@ -3,14 +3,17 @@ import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Ticket } from 'lucide-react'
 import { useLanguage } from '../context/LanguageProvider'
 import { useNetwork } from '../context/NetworkProvider'
 import { useSelection } from '../context/SelectionProvider'
+import { etaFactors } from '../lib/etaFactors'
 import { formatClock, formatDuration, minutesUntil } from '../lib/railSim'
 import { delayNarrative, journeyStats, passengerSummary } from '../lib/trainInsights'
 import { AskRailSense } from '../components/assistant/AskRailSense'
+import { EtaFactors } from '../components/live/EtaFactors'
 import { JourneyBookmark } from '../components/live/JourneyBookmark'
 import { ConnectionPlanner } from '../components/stations/ConnectionPlanner'
 import { Button } from '../components/ui/Button'
 import { Eyebrow } from '../components/ui/Eyebrow'
 import { Mono } from '../components/ui/Mono'
+import { SourceBadge } from '../components/ui/SourceBadge'
 
 const RailMap = lazy(() =>
   import('../components/map/RailMap').then((m) => ({ default: m.RailMap })),
@@ -19,15 +22,31 @@ const RailMap = lazy(() =>
 /**
  * The canonical train record — written for the passenger, not the controller.
  *
- * The page answers questions in the order someone actually has them: where is
- * it, when does it get in, how late is it, why, how far has it come, will I
- * make my connection. The operational material is all still here, but it sits
- * below that and behind disclosure, so nobody has to read a table to learn
- * their train is six minutes down.
+ * READING ORDER
+ *
+ * The page runs in the order a passenger actually asks questions, and the
+ * markup follows that order top to bottom:
+ *
+ *   1  status      what train this is and how it is running
+ *   2  next stop    station, expected arrival, time remaining, delay
+ *   3  journey      progress on the left, every remaining call on the right
+ *   4  map          the same journey, drawn on the network
+ *   5  connection   whether the onward train will still be there
+ *   6  why          the named conditions behind the predicted arrival
+ *   7  recovery     what the delay has done and what it will do
+ *   8  confidence   how much slack to leave around that arrival
+ *   9  secondary    operational detail, folded away, and the assistant
+ *
+ * The map sits *under* the journey, not over it. A map is the obvious hero for
+ * a train page and the wrong one: it answers "where is it" and none of the
+ * questions a passenger holding a ticket is actually asking. Opening on the
+ * next stop and the station timings puts the figures someone is standing on a
+ * platform for above the fold — and the map immediately after them, while the
+ * route they name is still in mind, rather than exiled to the foot of the page.
  *
  * Every figure is read from one `railSim` train state — the same object the
- * map and Live Status render (§17). Nothing on this page computes railway
- * logic of its own.
+ * map and Live Status render (§17) — on the one simulation clock. Nothing on
+ * this page computes railway logic of its own.
  */
 
 const STATUS_TONE = {
@@ -110,7 +129,10 @@ function StationTimings({ train }) {
             const booked = stop.bookedArrMin ?? stop.bookedDepMin
             const predicted = stop.predictedArrMin ?? stop.predictedDepMin
             return (
-              <tr key={stop.code}>
+              <tr
+                key={stop.code}
+                className={stop.state === 'next' ? 'bg-brand-soft/40' : undefined}
+              >
                 <th scope="row" className="py-2.5 pr-4 font-normal">
                   <Mono className={`text-xs ${past ? 'text-fg-muted' : 'font-bold text-fg'}`}>
                     {stop.code}
@@ -144,20 +166,54 @@ function StationTimings({ train }) {
   )
 }
 
+/**
+ * How much slack to leave around the predicted arrival.
+ *
+ * This is a *presentation* of numbers the engine has already produced, not a
+ * second forecast: how much of the run is still ahead, and how far the chain
+ * still expects the arrival to move between here and the terminus. A long way
+ * to go with a swinging forecast is a loose band; a short run holding steady
+ * is a tight one. No prediction is recomputed.
+ */
+function etaConfidence(train) {
+  const remaining = train.timeline.filter(
+    (stop) => stop.state === 'upcoming' || stop.state === 'next',
+  ).length
+  const swing = Math.abs(Math.round(train.destinationDelay - train.delayMin))
+  const margin = Math.max(2, swing + Math.ceil(remaining / 2))
+  const level = margin <= 4 ? 'high' : margin <= 10 ? 'medium' : 'low'
+  return { level, margin, remaining, swing }
+}
+
+const CONFIDENCE_TONE = {
+  high: 'border-brand bg-brand-soft text-brand-text',
+  medium: 'border-caution bg-caution-soft text-caution',
+  low: 'border-danger bg-danger-soft text-danger',
+}
+
 export function TrainDetail({ trainNumber, onBack }) {
   const { t } = useLanguage()
   const { trains, minutes } = useNetwork()
   const { selectTrain, highlightedStop } = useSelection()
 
   const connectionRef = useRef(null)
+  // Focus is moved a beat after the scroll starts; the handle is kept so
+  // leaving the page cannot leave a timer running against a dead node.
+  const focusTimerRef = useRef(0)
   const train = trains.find((item) => item.number === trainNumber) ?? null
 
   useEffect(() => {
     if (trainNumber) selectTrain(trainNumber)
   }, [trainNumber, selectTrain])
 
+  useEffect(() => () => window.clearTimeout(focusTimerRef.current), [])
+
   const stats = useMemo(() => (train ? journeyStats(train, minutes) : null), [train, minutes])
   const delay = useMemo(() => (train ? delayNarrative(train) : null), [train])
+  // Recomputed from the same simulation snapshot as everything else on the
+  // page, so the factors and the arrival time they explain move together.
+  const breakdown = useMemo(() => (train ? etaFactors(train, minutes) : null), [train, minutes])
+  const confidence = useMemo(() => (train ? etaConfidence(train) : null), [train])
   const summary = useMemo(
     () => (train && stats ? passengerSummary(train, stats, formatClock, formatDuration) : []),
     [train, stats],
@@ -169,7 +225,8 @@ export function TrainDetail({ trainNumber, onBack }) {
     const node = connectionRef.current
     if (!node) return
     node.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    window.setTimeout(() => node.querySelector('select')?.focus(), 420)
+    window.clearTimeout(focusTimerRef.current)
+    focusTimerRef.current = window.setTimeout(() => node.querySelector('select')?.focus(), 420)
   }, [])
 
   if (!train) {
@@ -207,18 +264,22 @@ export function TrainDetail({ trainNumber, onBack }) {
         {t('journey.back')}
       </button>
 
-      {/* Identity ------------------------------------------------------------ */}
+      {/* 1 · Train status ---------------------------------------------------- */}
       <header>
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <Mono className="text-3xl font-bold leading-none text-fg sm:text-4xl">{train.number}</Mono>
           <h1 className="font-display text-2xl font-medium text-fg sm:text-3xl">{train.name}</h1>
         </div>
-        <p className="mt-2 text-sm text-fg-muted">
-          {train.origin.name} → {train.destination.name}
+        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted">
+          <span>
+            {train.origin.name} → {train.destination.name}
+          </span>
+          <span aria-hidden="true">·</span>
+          {/* Says outright that these figures come from the simulation. */}
+          <SourceBadge source="simulated" />
         </p>
       </header>
 
-      {/* Where is my train --------------------------------------------------- */}
       <section className="mt-6 border-y border-line-strong py-6">
         <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
           <div className="min-w-0">
@@ -294,8 +355,10 @@ export function TrainDetail({ trainNumber, onBack }) {
         </div>
       </section>
 
-      {/* Next stop ------------------------------------------------------------ */}
-      <section className="mt-6 grid gap-x-8 gap-y-4 border-b border-line pb-6 sm:grid-cols-[1fr_auto]">
+      {/* 2 · Next stop — the summary line, immediately under the status and
+             above the fold: station, expected arrival, time remaining, and the
+             delay it is running. */}
+      <section className="mt-8 grid gap-x-8 gap-y-4 border-b border-line pb-6 sm:grid-cols-[1fr_auto]">
         <div className="min-w-0">
           <Eyebrow as="h2" tone="fg">
             {t('detail.nextStop')}
@@ -336,9 +399,10 @@ export function TrainDetail({ trainNumber, onBack }) {
         </dl>
       </section>
 
-      {/* Journey + map --------------------------------------------------------- */}
-      <div className="mt-8 grid gap-6 lg:grid-cols-12">
-        <Section title={t('detail.howFar')} className="lg:col-span-7">
+      {/* 3 · The journey itself: progress on the left, every remaining call on
+             the right. Both are on the page the moment it opens. */}
+      <div className="mt-8 grid gap-8 lg:grid-cols-12">
+        <Section title={t('detail.howFar')} className="lg:col-span-5">
           <div
             className="max-h-[32rem] overflow-y-auto pr-1"
             tabIndex={0}
@@ -349,9 +413,25 @@ export function TrainDetail({ trainNumber, onBack }) {
           </div>
         </Section>
 
-        {/* The map supports the journey rather than leading the page (§7). */}
-        <Section title={t('detail.onTheMap')} className="lg:col-span-5">
-          <div className="relative h-[20rem] border border-line sm:h-[24rem]">
+        {/* Out of disclosure and onto the page: every remaining call, booked
+            against predicted, with the next one marked. */}
+        <Section
+          title={t('detail.stationTimings')}
+          lead={t('upcoming.caption')}
+          className="lg:col-span-7"
+        >
+          <StationTimings train={train} />
+        </Section>
+    </div>
+
+      {/* 4 · On the map — directly under the journey it illustrates. It sits
+             below the timings rather than above them, so the page opens on the
+             figures a passenger came for; but it stays beside them rather than
+             at the foot of the page, because it is the same journey drawn a
+             second way. Component and props are untouched. */}
+      <div className="mt-10 border-t-2 border-fg pt-6">
+        <Section title={t('detail.onTheMap')} lead={t('detail.mapLead')}>
+          <div className="relative h-[20rem] border border-line sm:h-[24rem] lg:h-[26rem]">
             <Suspense
               fallback={
                 <div className="absolute inset-0 flex items-center justify-center bg-sunken">
@@ -373,8 +453,8 @@ export function TrainDetail({ trainNumber, onBack }) {
         </Section>
       </div>
 
-      {/* Connection ------------------------------------------------------------ */}
-      <div ref={connectionRef} className="mt-8 scroll-mt-24">
+      {/* 5 · "I'm travelling" — will I catch my next train? ------------------- */}
+      <div ref={connectionRef} className="mt-10 scroll-mt-24 border-t-2 border-fg pt-6">
         <ConnectionPlanner
           fixedTrain={train}
           headingId="connection-detail"
@@ -382,17 +462,97 @@ export function TrainDetail({ trainNumber, onBack }) {
         />
       </div>
 
-      {/* Why is it late --------------------------------------------------------- */}
-      <div className="mt-8 grid gap-8 lg:grid-cols-12">
+      {/* 6 · Why this ETA ------------------------------------------------------ */}
+      <div className="mt-10">
+        <Section title={t('detail.whyThisEta')} lead={t('detail.whyLead')}>
+          <div className="grid gap-6 lg:grid-cols-12">
+            <dl className="border-t border-line lg:col-span-5">
+              {[
+                [t('detail.scheduledArrival'), formatClock(train.bookedArrivalMin), 'text-fg-muted'],
+                [t('detail.predictedArrival'), formatClock(train.etaMinutes), 'text-fg'],
+                [
+                  t('detail.expectedDelay'),
+                  train.destinationDelay > 0
+                    ? `+${train.destinationDelay} ${t('unit.min')}`
+                    : t('status.onTime'),
+                  train.destinationDelay > 0 ? 'text-caution' : 'text-brand-text',
+                ],
+              ].map(([label, value, colour]) => (
+                <div
+                  key={label}
+                  className="flex items-baseline justify-between gap-4 border-b border-line py-3"
+                >
+                  <dt className="text-[0.8125rem] text-fg-muted">{label}</dt>
+                  <dd className={`font-mono text-lg font-semibold tabular-nums ${colour}`}>
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            <div className="lg:col-span-7">
+              <p className="text-[0.9375rem] leading-6 text-fg-muted">
+                {t('detail.etaExplanation', {
+                  station: train.destination.name,
+                  minutes: train.destinationDelay,
+                })}
+              </p>
+              {endIn != null ? (
+                <p className="mt-2 font-mono text-[0.625rem] uppercase tracking-[var(--tracking-rail)] text-fg-muted">
+                  {t('detail.arrivesIn')} {formatDuration(endIn)}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* The named conditions behind that arrival time (§2). */}
+          <div className="mt-8 border-t border-line pt-6">
+            <EtaFactors train={train} breakdown={breakdown} />
+          </div>
+        </Section>
+      </div>
+
+      {/* 7 · Delay recovery ---------------------------------------------------- */}
+      <div className="mt-10">
         <Section
-          title={
-            train.delayMin > 0 ? t('detail.whyLate', { minutes: train.delayMin }) : t('detail.whyOnTime')
+          title={t('recovery.title')}
+          lead={
+            train.delayMin > 0
+              ? t('detail.whyLate', { minutes: train.delayMin })
+              : t('detail.whyOnTime')
           }
-          lead={t('detail.whyLead')}
-          className="lg:col-span-7"
         >
+          {/* The three figures the narrative below is about, all read straight
+              off the propagated chain. */}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-b border-line pb-5 sm:grid-cols-3">
+            {[
+              [t('recovery.currentDelay'), delay.current, delay.current > 0],
+              [
+                delay.ahead >= 0 ? t('recovery.additional') : t('recovery.expected'),
+                Math.abs(delay.ahead),
+                delay.ahead > 0,
+              ],
+              [
+                t('recovery.atDestination', { station: train.destination.code }),
+                train.destinationDelay,
+                train.destinationDelay > 0,
+              ],
+            ].map(([label, value, warn]) => (
+              <div key={label}>
+                <dt className="font-mono text-[0.5625rem] uppercase tracking-[var(--tracking-rail)] text-fg-muted">
+                  {label}
+                </dt>
+                <dd
+                  className={`mt-1 font-mono text-2xl font-semibold tabular-nums ${warn ? 'text-caution' : 'text-brand-text'}`}
+                >
+                  {value} <span className="text-sm font-normal">{t('unit.min')}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+
           {/* A sequence, not a chart: each row is one thing that happened. */}
-          <ol className="border-t border-line">
+          <ol className="mt-5 border-t border-line">
             {delay.events.map((event) => (
               <li key={event.id} className="flex items-start gap-4 border-b border-line py-3">
                 <Mono
@@ -428,55 +588,29 @@ export function TrainDetail({ trainNumber, onBack }) {
             {t('detail.causeNote')}
           </p>
         </Section>
+      </div>
 
-        {/* Why this arrival time ---------------------------------------------- */}
-        <Section title={t('detail.whyThisEta')} className="lg:col-span-5">
-          <dl className="border-t border-line">
-            {[
-              [t('detail.scheduledArrival'), formatClock(train.bookedArrivalMin), 'text-fg-muted'],
-              [t('detail.predictedArrival'), formatClock(train.etaMinutes), 'text-fg'],
-              [
-                t('detail.expectedDelay'),
-                train.destinationDelay > 0
-                  ? `+${train.destinationDelay} ${t('unit.min')}`
-                  : t('status.onTime'),
-                train.destinationDelay > 0 ? 'text-caution' : 'text-brand-text',
-              ],
-            ].map(([label, value, colour]) => (
-              <div
-                key={label}
-                className="flex items-baseline justify-between gap-4 border-b border-line py-3"
-              >
-                <dt className="text-[0.8125rem] text-fg-muted">{label}</dt>
-                <dd className={`font-mono text-lg font-semibold tabular-nums ${colour}`}>{value}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <p className="mt-3 text-[0.8125rem] leading-6 text-fg-muted">
-            {t('detail.etaExplanation', {
-              station: train.destination.name,
-              minutes: train.destinationDelay,
-            })}
-          </p>
-
-          {endIn != null ? (
-            <p className="mt-2 font-mono text-[0.625rem] uppercase tracking-[var(--tracking-rail)] text-fg-muted">
-              {t('detail.arrivesIn')} {formatDuration(endIn)}
+      {/* 8 · ETA confidence ---------------------------------------------------- */}
+      <div className="mt-10">
+        <Section title={t('confidence.title')}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <span
+              className={`border px-3 py-1.5 font-mono text-[0.6875rem] font-bold uppercase tracking-[var(--tracking-rail)] ${CONFIDENCE_TONE[confidence.level]}`}
+            >
+              {t(`confidence.${confidence.level}`)}
+            </span>
+            <p className="max-w-prose text-[0.9375rem] leading-6 text-fg-muted">
+              {t('confidence.margin', { minutes: confidence.margin })}
             </p>
-          ) : null}
+          </div>
         </Section>
       </div>
 
-      {/* The operational material, folded away ---------------------------------- */}
-      <div className="mt-8">
+      {/* 9 · The operational material, folded away ------------------------------ */}
+      <div className="mt-10">
         <Eyebrow as="h2" tone="fg" className="mb-1">
           {t('detail.moreDetail')}
         </Eyebrow>
-
-        <Disclosure title={t('detail.stationTimings')} count={`${train.timeline.length}`}>
-          <StationTimings train={train} />
-        </Disclosure>
 
         <Disclosure title={t('detail.journeyDetails')}>
           <dl className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
@@ -507,7 +641,8 @@ export function TrainDetail({ trainNumber, onBack }) {
           <Eyebrow as="h3" tone="fg" className="mb-3">
             {t('ask.title')}
           </Eyebrow>
-          <AskRailSense />
+          {/* Voice Mode announces about the train this page is showing. */}
+          <AskRailSense trainNumber={train.number} />
         </div>
       </div>
 

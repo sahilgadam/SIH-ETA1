@@ -38,6 +38,7 @@ export const translations = {
     'hero.note': 'Covering coaching trains across the Indian Railways network.',
 
     'nav.simulationActive': 'Simulation active',
+    'nav.simulationPaused': 'Simulation paused',
 
     'ask.unknown': 'I did not catch a train or station in that. Try “Where is 12952?” or “Is 12301 delayed?”',
     'ask.noTrain': 'I have no running data for train {train} in this demo network.',
@@ -229,6 +230,8 @@ export const translations = {
     'detail.arrivingIn': 'Arriving in',
     'detail.howFar': 'How far it has got',
     'detail.onTheMap': 'On the map',
+    'detail.mapLead':
+      'The same position, delay and route the timings above are built from, drawn on the network.',
     'detail.whyLate': 'Why is it {minutes} minutes late?',
     'detail.whyOnTime': 'Why it is running to time',
     'detail.whyLead': 'What has happened to this service so far, in the order it happened.',
@@ -488,6 +491,37 @@ export const translations = {
     'why.runningSpeed': 'Current running speed',
     'why.weather': 'Weather conditions',
     'why.history': 'Historical running pattern',
+    // ----- "Why this ETA?" factor breakdown (§2) -------------------------
+    'why.factorsTitle': 'What the prediction is made of',
+    'why.factorsLead':
+      'Every minute below is a minute the predicted arrival actually contains: they add up from the delay now to the delay expected at the end of the run.',
+    'why.traffic': 'Traffic congestion',
+    'why.stationCongestion': 'Station congestion',
+    'why.colFactor': 'Factor',
+    'why.colCondition': 'Condition',
+    'why.colEffect': 'Effect on arrival',
+    'why.note.traffic': 'Line occupancy over the sections still to run.',
+    'why.note.stationCongestion': 'Time held at the junctions ahead, beyond the booked stop.',
+    'why.note.restriction': 'Speed limits in force on the remaining route.',
+    'why.note.weather': 'Conditions expected on the sections ahead.',
+    'why.note.currentDelay': 'How far behind its booked time the service is right now.',
+    'why.note.recovery': 'Time the running margin ahead is expected to give back.',
+    'why.balanceLate':
+      'Running {current} min behind now. Conditions ahead add {loss} min and the margin gives back {recovery} min, which is the {predicted} min predicted into {station}.',
+    'why.balanceHeld':
+      'Running {current} min behind now, and nothing ahead is expected to change that before {station}.',
+    'why.balanceOnTime':
+      'Running to time, and the sections ahead are expected to keep it that way into {station}.',
+    'why.balanceEarly':
+      'Running {current} min ahead of its booked time, and expected into {station} about {predicted} min early.',
+    'why.balanceRecovering':
+      'Running {current} min behind now, but the margin ahead should give back {recovery} min before {station}.',
+    'why.balanceLosing':
+      'Running {current} min behind now; conditions ahead are expected to add another {loss} min before {station}.',
+    'why.noFactors': 'This service has run its route — there are no sections left to forecast.',
+    'why.factorsNote':
+      'Severity is read from the minutes each condition accounts for. Attribution across conditions is demo data; the total it divides is the simulation\u2019s own forecast.',
+
     'why.disclaimer':
       'Prototype prediction inputs. These figures are illustrative placeholders, not live railway data or the output of a trained model.',
 
@@ -603,6 +637,12 @@ export const translations = {
     'confidence.reason.volatile':
       'Conditions on the sections ahead are changing quickly at the moment, so this arrival could still move either way.',
     // ----- Data trust (§29) -----
+    'condition.clear': 'Clear',
+    'condition.light': 'Light',
+    'condition.moderate': 'Moderate',
+    'condition.heavy': 'Heavy',
+    'condition.unknown': 'Not available',
+
     'trust.confirmed': 'Confirmed',
     'trust.predicted': 'Predicted',
     'trust.simulated': 'Simulated',
@@ -620,6 +660,7 @@ export const translations = {
     'map.zoomOut': 'Zoom out',
     'map.locateTrain': 'Centre on the train',
     'map.fitRoute': 'Fit the whole route',
+    'map.tracing': 'Tracing {train} · simulated',
     'map.actual': 'Actual',
     'map.observedDelay': 'Delay',
     'map.predictedDelay': 'Predicted delay',
@@ -760,6 +801,67 @@ export const translations = {
       'RailSense predicts train {train} will reach {station} at {time}, about {minutes} minutes late.',
     'voice.answerDelay':
       'Train {train} is running {minutes} minutes late right now. RailSense predicts {predicted} minutes late on arrival at {destination}.',
+
+    // ----- Spoken station announcements (§3, bilingual) ------------------
+    // UI copy for the announcement panel inside Voice Mode.
+    'announce.title': 'Train announcements',
+    'announce.lead': 'Station-style announcements, read from this journey’s live figures.',
+    'announce.language': 'Announcement language',
+    'announce.auto': 'Automatic',
+    'announce.autoHint': 'Announce station, arrival and delay changes as they happen.',
+    'announce.now': 'Announce now',
+    'announce.stop': 'Stop',
+    'announce.latest': 'Latest announcement',
+    'announce.none': 'Nothing announced yet.',
+    'announce.noTrain': 'Open a train to hear its announcements.',
+    'announce.textOnly':
+      'This browser cannot read announcements aloud, so each one is shown here instead.',
+    'announce.paused': 'The simulation is paused, so nothing new is being announced.',
+    'announce.simulated': 'Announcements are generated from the demo simulation.',
+
+    // The announcements themselves. Every figure is filled in from the same
+    // train state the screen renders — no timing is ever written in here.
+    'announce.arrival':
+      'Train {train} is expected to arrive at {station} at {time}, approximately {minutes} minutes late.',
+    'announce.arrival.one':
+      'Train {train} is expected to arrive at {station} at {time}, approximately 1 minute late.',
+    'announce.arrivalOnTime':
+      'Train {train} is expected to arrive at {station} at {time}, on time.',
+    'announce.arrivalEarly':
+      'Train {train} is expected to arrive at {station} at {time}, about {minutes} minutes ahead of schedule.',
+    'announce.arrivalEarly.one':
+      'Train {train} is expected to arrive at {station} at {time}, about 1 minute ahead of schedule.',
+    'announce.standing':
+      'Train {train} is standing at {station}. It is expected to depart at {time}.',
+    'announce.standingLate':
+      'Train {train} is standing at {station}, approximately {minutes} minutes late. It is expected to depart at {time}.',
+    'announce.standingLate.one':
+      'Train {train} is standing at {station}, approximately 1 minute late. It is expected to depart at {time}.',
+    'announce.terminated': 'Train {train} has completed its journey at {station}.',
+    'announce.statusLate':
+      'Attention please. Train {train} is running approximately {minutes} minutes late.',
+    'announce.statusLate.one':
+      'Attention please. Train {train} is running approximately 1 minute late.',
+    'announce.statusOnTime': 'Train {train} is running on time.',
+    'announce.statusEarly':
+      'Train {train} is running about {minutes} minutes ahead of schedule.',
+    'announce.statusEarly.one': 'Train {train} is running about 1 minute ahead of schedule.',
+    'announce.destination':
+      'Train {train} is expected to reach {station}, its destination, at {time}, approximately {minutes} minutes late.',
+    'announce.destination.one':
+      'Train {train} is expected to reach {station}, its destination, at {time}, approximately 1 minute late.',
+    'announce.destinationOnTime':
+      'Train {train} is expected to reach {station}, its destination, at {time}, on time.',
+    'announce.etaLater':
+      'Revised timing. Train {train} is now expected at {station} at {time}, about {minutes} minutes later than announced.',
+    'announce.etaLater.one':
+      'Revised timing. Train {train} is now expected at {station} at {time}, about 1 minute later than announced.',
+    'announce.etaEarlier':
+      'Revised timing. Train {train} is now expected at {station} at {time}, about {minutes} minutes earlier than announced.',
+    'announce.etaEarlier.one':
+      'Revised timing. Train {train} is now expected at {station} at {time}, about 1 minute earlier than announced.',
+    'announce.unavailable':
+      'Running information for this train is not available at the moment.',
   },
 
   hi: {
@@ -790,6 +892,7 @@ export const translations = {
     'hero.note': 'भारतीय रेल नेटवर्क की कोचिंग ट्रेनों के लिए।',
 
     'nav.simulationActive': 'सिमुलेशन सक्रिय',
+    'nav.simulationPaused': 'सिमुलेशन रुका हुआ',
 
     'ask.unknown': 'इसमें कोई ट्रेन या स्टेशन नहीं मिला। पूछिए: “12952 कहाँ है?”',
     'ask.noTrain': 'इस डेमो नेटवर्क में ट्रेन {train} का डेटा नहीं है।',
@@ -976,6 +1079,8 @@ export const translations = {
     'detail.arrivingIn': 'पहुँच रही है',
     'detail.howFar': 'अब तक की यात्रा',
     'detail.onTheMap': 'मानचित्र पर',
+    'detail.mapLead':
+      'ऊपर दिए समय जिस स्थिति, देरी और मार्ग से बने हैं, वही नेटवर्क पर दिखाया गया है।',
     'detail.whyLate': 'यह {minutes} मिनट लेट क्यों है?',
     'detail.whyOnTime': 'यह समय पर क्यों है',
     'detail.whyLead': 'इस सेवा के साथ अब तक क्या हुआ, क्रम में।',
@@ -1236,6 +1341,37 @@ export const translations = {
     'why.runningSpeed': 'वर्तमान गति',
     'why.weather': 'मौसम की स्थिति',
     'why.history': 'ऐतिहासिक चलने का पैटर्न',
+    // ----- "यह ETA क्यों?" कारकों का विवरण (§2) --------------------------
+    'why.factorsTitle': 'अनुमान किन बातों से बना है',
+    'why.factorsLead':
+      'नीचे दिया हर मिनट अनुमानित आगमन में सचमुच शामिल है: ये अभी की देरी से जुड़कर यात्रा के अंत तक की अनुमानित देरी बनाते हैं।',
+    'why.traffic': 'यातायात की भीड़',
+    'why.stationCongestion': 'स्टेशन पर भीड़',
+    'why.colFactor': 'कारक',
+    'why.colCondition': 'स्थिति',
+    'why.colEffect': 'आगमन पर असर',
+    'why.note.traffic': 'आगे बचे सेक्शनों पर लाइन की व्यस्तता।',
+    'why.note.stationCongestion': 'आगे के जंक्शनों पर निर्धारित ठहराव से अधिक रुकने का समय।',
+    'why.note.restriction': 'बचे हुए मार्ग पर लागू गति सीमाएँ।',
+    'why.note.weather': 'आगे के सेक्शनों पर संभावित मौसम।',
+    'why.note.currentDelay': 'इस समय ट्रेन अपने निर्धारित समय से कितनी पीछे है।',
+    'why.note.recovery': 'आगे उपलब्ध मार्जिन से वापस मिलने वाला समय।',
+    'why.balanceLate':
+      'अभी {current} मिनट की देरी। आगे की स्थितियाँ {loss} मिनट जोड़ती हैं और मार्जिन {recovery} मिनट लौटाता है, जिससे {station} पर अनुमानित देरी {predicted} मिनट बनती है।',
+    'why.balanceHeld':
+      'अभी {current} मिनट की देरी, और {station} तक आगे कुछ भी इसे बदलता नहीं दिखता।',
+    'why.balanceOnTime':
+      'ट्रेन समय पर है, और आगे के सेक्शन {station} तक इसे समय पर ही रखने की उम्मीद है।',
+    'why.balanceEarly':
+      'ट्रेन निर्धारित समय से {current} मिनट आगे चल रही है, और {station} पर लगभग {predicted} मिनट पहले पहुँचने की उम्मीद है।',
+    'why.balanceRecovering':
+      'अभी {current} मिनट की देरी, पर {station} से पहले आगे का मार्जिन {recovery} मिनट लौटा देगा।',
+    'why.balanceLosing':
+      'अभी {current} मिनट की देरी; {station} से पहले आगे की स्थितियाँ {loss} मिनट और जोड़ सकती हैं।',
+    'why.noFactors': 'यह सेवा अपना मार्ग पूरा कर चुकी है — आगे पूर्वानुमान के लिए कोई सेक्शन नहीं है।',
+    'why.factorsNote':
+      'गंभीरता उन मिनटों से तय होती है जो हर स्थिति के खाते में जाते हैं। स्थितियों के बीच बँटवारा डेमो डेटा है; जिस कुल को यह बाँटता है वह सिमुलेशन का अपना पूर्वानुमान है।',
+
     'why.disclaimer':
       'प्रोटोटाइप अनुमान इनपुट। ये आँकड़े केवल उदाहरण हैं — न लाइव रेलवे डेटा, न किसी प्रशिक्षित मॉडल का परिणाम।',
 
@@ -1350,6 +1486,12 @@ export const translations = {
     'confidence.reason.volatile':
       'आगे के सेक्शनों की स्थितियाँ इस समय तेज़ी से बदल रही हैं, इसलिए यह आगमन समय अभी दोनों ओर खिसक सकता है।',
     // ----- डेटा भरोसा (§29) -----
+    'condition.clear': 'साफ़',
+    'condition.light': 'हल्की',
+    'condition.moderate': 'मध्यम',
+    'condition.heavy': 'भारी',
+    'condition.unknown': 'उपलब्ध नहीं',
+
     'trust.confirmed': 'पुष्ट',
     'trust.predicted': 'अनुमानित',
     'trust.simulated': 'सिम्युलेटेड',
@@ -1367,6 +1509,7 @@ export const translations = {
     'map.zoomOut': 'ज़ूम आउट',
     'map.locateTrain': 'ट्रेन पर केंद्रित करें',
     'map.fitRoute': 'पूरा रूट दिखाएँ',
+    'map.tracing': '{train} ट्रैक हो रही है · सिम्युलेटेड',
     'map.actual': 'वास्तविक',
     'map.observedDelay': 'देरी',
     'map.predictedDelay': 'अनुमानित देरी',
@@ -1506,5 +1649,93 @@ export const translations = {
       'RailSense के अनुसार ट्रेन {train} {station} पर {time} बजे पहुँचेगी, करीब {minutes} मिनट लेट।',
     'voice.answerDelay':
       'ट्रेन {train} इस समय {minutes} मिनट लेट चल रही है। RailSense के अनुसार {destination} पर आगमन के समय {predicted} मिनट की देरी होगी।',
+
+    // ----- बोली जाने वाली स्टेशन उद्घोषणाएँ (§3) -------------------------
+    'announce.title': 'ट्रेन उद्घोषणा',
+    'announce.lead': 'इसी यात्रा के लाइव आँकड़ों से बनी, स्टेशन जैसी उद्घोषणाएँ।',
+    'announce.language': 'उद्घोषणा की भाषा',
+    'announce.auto': 'स्वचालित',
+    'announce.autoHint': 'स्टेशन, आगमन और देरी में बदलाव होते ही उद्घोषणा करें।',
+    'announce.now': 'अभी सुनाएँ',
+    'announce.stop': 'रोकें',
+    'announce.latest': 'नवीनतम उद्घोषणा',
+    'announce.none': 'अभी तक कोई उद्घोषणा नहीं।',
+    'announce.noTrain': 'उद्घोषणा सुनने के लिए कोई ट्रेन खोलें।',
+    'announce.textOnly':
+      'यह ब्राउज़र उद्घोषणा बोल नहीं सकता, इसलिए हर उद्घोषणा यहाँ लिखी दिखाई जा रही है।',
+    'announce.paused': 'सिमुलेशन रुका हुआ है, इसलिए कोई नई उद्घोषणा नहीं हो रही।',
+    'announce.simulated': 'उद्घोषणाएँ डेमो सिमुलेशन से बनाई जाती हैं।',
+
+    'announce.arrival':
+      'ट्रेन {train} के {station} स्टेशन पर {time} पहुँचने की उम्मीद है, लगभग {minutes} मिनट की देरी से।',
+    'announce.arrival.one':
+      'ट्रेन {train} के {station} स्टेशन पर {time} पहुँचने की उम्मीद है, लगभग 1 मिनट की देरी से।',
+    'announce.arrivalOnTime':
+      'ट्रेन {train} के {station} स्टेशन पर {time} समय पर पहुँचने की उम्मीद है।',
+    'announce.arrivalEarly':
+      'ट्रेन {train} के {station} स्टेशन पर {time} पहुँचने की उम्मीद है, निर्धारित समय से लगभग {minutes} मिनट पहले।',
+    'announce.arrivalEarly.one':
+      'ट्रेन {train} के {station} स्टेशन पर {time} पहुँचने की उम्मीद है, निर्धारित समय से लगभग 1 मिनट पहले।',
+    'announce.standing':
+      'ट्रेन {train} {station} स्टेशन पर खड़ी है। इसके {time} रवाना होने की उम्मीद है।',
+    'announce.standingLate':
+      'ट्रेन {train} {station} स्टेशन पर खड़ी है, लगभग {minutes} मिनट की देरी से। इसके {time} रवाना होने की उम्मीद है।',
+    'announce.standingLate.one':
+      'ट्रेन {train} {station} स्टेशन पर खड़ी है, लगभग 1 मिनट की देरी से। इसके {time} रवाना होने की उम्मीद है।',
+    'announce.terminated': 'ट्रेन {train} अपनी यात्रा {station} स्टेशन पर पूरी कर चुकी है।',
+    'announce.statusLate':
+      'कृपया ध्यान दें। ट्रेन {train} लगभग {minutes} मिनट की देरी से चल रही है।',
+    'announce.statusLate.one': 'कृपया ध्यान दें। ट्रेन {train} लगभग 1 मिनट की देरी से चल रही है।',
+    'announce.statusOnTime': 'ट्रेन {train} समय पर चल रही है।',
+    'announce.statusEarly':
+      'ट्रेन {train} निर्धारित समय से लगभग {minutes} मिनट पहले चल रही है।',
+    'announce.statusEarly.one': 'ट्रेन {train} निर्धारित समय से लगभग 1 मिनट पहले चल रही है।',
+    'announce.destination':
+      'ट्रेन {train} के अपने गंतव्य {station} पर {time} पहुँचने की उम्मीद है, लगभग {minutes} मिनट की देरी से।',
+    'announce.destination.one':
+      'ट्रेन {train} के अपने गंतव्य {station} पर {time} पहुँचने की उम्मीद है, लगभग 1 मिनट की देरी से।',
+    'announce.destinationOnTime':
+      'ट्रेन {train} के अपने गंतव्य {station} पर {time} समय पर पहुँचने की उम्मीद है।',
+    'announce.etaLater':
+      'समय में बदलाव। ट्रेन {train} के अब {station} पर {time} पहुँचने की उम्मीद है, पहले बताए समय से लगभग {minutes} मिनट बाद।',
+    'announce.etaLater.one':
+      'समय में बदलाव। ट्रेन {train} के अब {station} पर {time} पहुँचने की उम्मीद है, पहले बताए समय से लगभग 1 मिनट बाद।',
+    'announce.etaEarlier':
+      'समय में बदलाव। ट्रेन {train} के अब {station} पर {time} पहुँचने की उम्मीद है, पहले बताए समय से लगभग {minutes} मिनट पहले।',
+    'announce.etaEarlier.one':
+      'समय में बदलाव। ट्रेन {train} के अब {station} पर {time} पहुँचने की उम्मीद है, पहले बताए समय से लगभग 1 मिनट पहले।',
+    'announce.unavailable': 'इस ट्रेन की चलने की जानकारी अभी उपलब्ध नहीं है।',
   },
+}
+
+/**
+ * Look up a copy key in an explicitly named language.
+ *
+ * `useLanguage().t` is bound to whatever the interface is currently set to,
+ * which is the right thing for anything on screen. Spoken announcements are
+ * not: the passenger picks the announcement language separately (the platform
+ * announcement is in Hindi whether or not the app is), so they need to resolve
+ * copy against a language of their choosing. Both routes come through here so
+ * there is one placeholder syntax and one fallback chain.
+ *
+ * When `vars.minutes` is exactly 1 and the dictionary carries a `<key>.one`
+ * variant, that one wins — otherwise generated sentences read "1 minutes".
+ */
+export function translate(language, key, vars) {
+  const fallback = translations[defaultLanguage]
+  const dictionary = translations[language] ?? fallback
+  const singular = vars?.minutes === 1 ? `${key}.one` : null
+
+  // Resolve the singular *within one dictionary at a time*. Reaching for the
+  // English `.one` when the chosen language only carries the plural form used
+  // to answer a Hindi question with an English sentence.
+  const pick = (source) =>
+    (singular ? source[singular] : undefined) ?? source[key]
+
+  const value = pick(dictionary) ?? pick(fallback) ?? key
+  if (!vars) return value
+
+  return value.replace(/\{(\w+)\}/g, (match, name) =>
+    Object.hasOwn(vars, name) ? String(vars[name]) : match,
+  )
 }

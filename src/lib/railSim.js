@@ -36,6 +36,7 @@
 
 import { stationCoordinates } from '../data/coordinates'
 import { liveTrains, majorStationCodes, stationNames } from '../data/liveTrains'
+import { routeShapes } from '../data/routeShapes'
 import { arcTable, nodeOffsets, toBezierSegments } from './geometry'
 
 /** The simulated clock starts here, in minutes past midnight IST. */
@@ -82,6 +83,42 @@ function hash(...parts) {
 // Route construction
 // ---------------------------------------------------------------------------
 
+/** Curve samples taken between consecutive alignment points. */
+const SAMPLES_PER_SEGMENT = 16
+
+/**
+ * The ordered points the route is drawn through, each tagged with the booked
+ * stop it is (or `null` for an intermediate station that the service passes).
+ *
+ * A published alignment is only used when it is provably compatible with the
+ * timetable: every booked stop present, in running order, starting at the
+ * origin and ending at the terminus. Anything else — an unknown code, a stop
+ * missing, a pair out of sequence — falls back to the stops alone, because a
+ * marker riding a curve that misses the stations it is timed against would
+ * put the map and the timeline into disagreement.
+ */
+function resolveShape(number, stops) {
+  const fromStops = stops.map((stop, i) => ({ lng: stop.lng, lat: stop.lat, stopIndex: i }))
+
+  const codes = routeShapes[number]
+  if (!codes || codes.length < stops.length) return fromStops
+  if (codes[0] !== stops[0].code || codes[codes.length - 1] !== stops[stops.length - 1].code) {
+    return fromStops
+  }
+
+  const nodes = []
+  let cursor = 0
+  for (const code of codes) {
+    const coord = stationCoordinates[code]
+    if (!coord) return fromStops
+    const isStop = cursor < stops.length && stops[cursor].code === code
+    nodes.push({ lng: coord[1], lat: coord[0], stopIndex: isStop ? cursor : null })
+    if (isStop) cursor += 1
+  }
+
+  return cursor === stops.length ? nodes : fromStops
+}
+
 /**
  * Resolve a train's stop list into absolute booked minutes, geometry, and a
  * section table. Done once per train at module load.
@@ -125,12 +162,19 @@ function buildRoute(train) {
   // Smooth the corridor through its stations so the drawn line reads as track
   // rather than as a zig-zag between points, and sample the *same* curve the
   // marker will ride.
-  const points = stops.map((s) => ({ x: s.lng, y: s.lat }))
+  //
+  // The curve follows the route's alignment (see `data/routeShapes.js`) when
+  // one is published — the booked stops plus the intermediate stations the
+  // line actually runs through — and its stops alone otherwise. This is
+  // purely where the route is *drawn*: every time, delay and prediction below
+  // comes from the timetable and is untouched by it.
+  const shape = resolveShape(train.number, stops)
+  const points = shape.map((node) => ({ x: node.lng, y: node.lat }))
   const segments = toBezierSegments(points, 0.4)
-  const table = arcTable(segments, 16)
-  const offsets = nodeOffsets(segments, table, 16)
-  stops.forEach((stop, i) => {
-    stop.t = offsets[i]
+  const table = arcTable(segments, SAMPLES_PER_SEGMENT)
+  const offsets = nodeOffsets(segments, table, SAMPLES_PER_SEGMENT)
+  shape.forEach((node, i) => {
+    if (node.stopIndex != null) stops[node.stopIndex].t = offsets[i]
   })
 
   const sections = []

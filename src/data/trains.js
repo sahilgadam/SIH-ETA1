@@ -59,7 +59,7 @@ export const popularTrains = [
     from: { code: 'BCT', name: 'Mumbai Central' },
     to: { code: 'ADI', name: 'Ahmedabad Junction' },
     departs: '06:10',
-    arrives: '11:25',
+    arrives: '11:25',  
     duration: '5h 15m',
     runsOn: 'Except Sunday',
   },
