@@ -139,85 +139,138 @@ function TransferTimeline({ prediction }) {
   )
 }
 
-export function ConnectionPlanner({ stationCode, onSelectTrain }) {
+export function ConnectionPlanner({ stationCode, fixedTrain, onSelectTrain, headingId }) {
   const { t } = useLanguage()
   const { trains } = useNetwork()
 
-  const [myNumber, setMyNumber] = useState(null)
+  const [myNumber, setMyNumber] = useState(fixedTrain?.number ?? null)
   const [connNumber, setConnNumber] = useState(null)
+  // Where the passenger changes. In train-first mode they pick it from the
+  // calls still ahead of the service they are already on.
+  const [changeAt, setChangeAt] = useState(null)
 
   // Services that actually call here, for the "my train" choice.
   const calling = useMemo(
-    () => trains.filter((train) => train.stops.some((stop) => stop.code === stationCode)),
+    () => (stationCode ? trains.filter((t2) => t2.stops.some((stop) => stop.code === stationCode)) : []),
     [trains, stationCode],
   )
 
+  // Calls this service has not reached yet — the only places a passenger
+  // still on board could actually change.
+  const interchanges = useMemo(
+    () =>
+      fixedTrain
+        ? fixedTrain.timeline.filter((stop) => stop.state !== 'past').slice(0, -1)
+        : [],
+    [fixedTrain],
+  )
+
+  // Keep the chosen interchange valid as the train runs past stations, and
+  // default to one that actually has onward services — offering a station
+  // whose dropdown is then empty is a dead end for the passenger.
+  const firstUsable = useMemo(() => {
+    if (!fixedTrain) return null
+    const withOptions = interchanges.find(
+      (stop) => connectingServicesAt(stop.code, fixedTrain, trains).length > 0,
+    )
+    return (withOptions ?? interchanges[0])?.code ?? null
+  }, [fixedTrain, interchanges, trains])
+
+  const activeStation = fixedTrain
+    ? (interchanges.find((stop) => stop.code === changeAt)?.code ?? firstUsable)
+    : stationCode
+
   // Reset the pair whenever the station changes — a connection at Kanpur is
   // meaningless once the user is looking at Howrah.
-  const [lastStation, setLastStation] = useState(stationCode)
-  if (lastStation !== stationCode) {
-    setLastStation(stationCode)
-    setMyNumber(null)
+  const resetKey = fixedTrain ? `train:${fixedTrain.number}` : `station:${stationCode}`
+  const [lastKey, setLastKey] = useState(resetKey)
+  if (lastKey !== resetKey) {
+    setLastKey(resetKey)
+    setMyNumber(fixedTrain?.number ?? null)
     setConnNumber(null)
+    setChangeAt(null)
   }
 
-  const myTrain = calling.find((train) => train.number === myNumber) ?? null
+  const myTrain = fixedTrain ?? calling.find((train) => train.number === myNumber) ?? null
 
   const options = useMemo(
-    () => (myTrain ? connectingServicesAt(stationCode, myTrain, trains) : []),
-    [myTrain, stationCode, trains],
+    () => (myTrain && activeStation ? connectingServicesAt(activeStation, myTrain, trains) : []),
+    [myTrain, activeStation, trains],
   )
 
   const connecting = options.find((option) => option.train.number === connNumber)?.train ?? null
 
   const prediction = useMemo(
-    () => predictConnection({ train: myTrain, code: stationCode, connecting, trains }),
-    [myTrain, stationCode, connecting, trains],
+    () => predictConnection({ train: myTrain, code: activeStation, connecting, trains }),
+    [myTrain, activeStation, connecting, trains],
   )
 
   const status = prediction ? CONNECTION_STATUS[prediction.status] : null
   const tone = status ? TONE[status.tone] : null
 
   return (
-    <section aria-labelledby="connection-title" className="border border-line bg-page p-4 sm:p-5">
+    <section aria-labelledby={headingId ?? "connection-title"} className="border border-line bg-page p-4 sm:p-5">
       <Eyebrow as="p">{t('connect.eyebrow')}</Eyebrow>
-      <h2 id="connection-title" className="mt-2 font-display text-2xl font-medium text-fg">
+      <h2 id={headingId ?? "connection-title"} className="mt-2 font-display text-2xl font-medium text-fg">
         {t('connect.title')}
       </h2>
       <p className="mt-2 max-w-prose text-sm leading-6 text-fg-muted">{t('connect.lead')}</p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
         <Step index="1" label={t('connect.step1')}>
-          <Select value={myNumber} onChange={setMyNumber} label={t('connect.step1')}>
-            <option value="">{t('connect.choose')}</option>
-            {calling.map((train) => (
-              <option key={train.number} value={train.number}>
-                {train.number} · {train.name.slice(0, 34)}
-              </option>
-            ))}
-          </Select>
+          {fixedTrain ? (
+            <p className="truncate border border-line bg-sunken px-2.5 py-2 font-mono text-xs text-fg">
+              {fixedTrain.number} · {fixedTrain.name}
+            </p>
+          ) : (
+            <Select value={myNumber} onChange={setMyNumber} label={t('connect.step1')}>
+              <option value="">{t('connect.choose')}</option>
+              {calling.map((train) => (
+                <option key={train.number} value={train.number}>
+                  {train.number} · {train.name.slice(0, 34)}
+                </option>
+              ))}
+            </Select>
+          )}
         </Step>
 
         <Step index="2" label={t('connect.step2')}>
-          <p className="border border-line bg-sunken px-2.5 py-2 font-mono text-xs text-fg">
-            {stationCode}
-          </p>
+          {fixedTrain ? (
+            <Select value={activeStation} onChange={setChangeAt} label={t('connect.step2')}>
+              {interchanges.map((stop) => {
+                const count = connectingServicesAt(stop.code, fixedTrain, trains).length
+                return (
+                  <option key={stop.code} value={stop.code}>
+                    {stop.name} ({stop.code}) ·{' '}
+                    {formatClock(stop.predictedArrMin ?? stop.predictedDepMin)}
+                    {count ? ` · ${count} onward` : ' · none'}
+                  </option>
+                )
+              })}
+            </Select>
+          ) : (
+            <p className="border border-line bg-sunken px-2.5 py-2 font-mono text-xs text-fg">
+              {stationCode}
+            </p>
+          )}
         </Step>
 
         <Step index="3" label={t('connect.step3')}>
-          <Select
-            value={connNumber}
-            onChange={setConnNumber}
-            label={t('connect.step3')}
-          >
-            <option value="">{myTrain ? t('connect.choose') : t('connect.chooseFirst')}</option>
-            {options.map((option) => (
-              <option key={option.train.number} value={option.train.number}>
-                {option.train.number} → {option.train.destination.code} ·{' '}
-                {formatClock(option.departure)}
-              </option>
-            ))}
-          </Select>
+          {myTrain && options.length === 0 ? (
+            <p className="border border-dashed border-line px-2.5 py-2 text-[0.6875rem] leading-5 text-fg-muted">
+              {t('connect.noneHere')}
+            </p>
+          ) : (
+            <Select value={connNumber} onChange={setConnNumber} label={t('connect.step3')}>
+              <option value="">{myTrain ? t('connect.choose') : t('connect.chooseFirst')}</option>
+              {options.map((option) => (
+                <option key={option.train.number} value={option.train.number}>
+                  {option.train.number} → {option.train.destination.code} ·{' '}
+                  {formatClock(option.departure)}
+                </option>
+              ))}
+            </Select>
+          )}
         </Step>
       </div>
 

@@ -502,6 +502,21 @@
     }
   }
 
+  /* A connected station lifts slightly on hover, so the diagram reads as
+     something you can act on rather than a picture. */
+  .station-node circle:nth-of-type(2) {
+    transition: r 180ms var(--ease-snap), stroke-width 180ms var(--ease-snap);
+  }
+  .station-node:hover circle:nth-of-type(2),
+  .station-node:focus-visible circle:nth-of-type(2) {
+    r: 7.5;
+    stroke-width: 2.6;
+  }
+  .station-node:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
   /* The assistant panel rises from the dock button rather than fading in. */
   @keyframes dock-in {
     from { opacity: 0; transform: translateY(10px); }

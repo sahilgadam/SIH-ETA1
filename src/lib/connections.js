@@ -17,22 +17,27 @@ export const MIN_TRANSFER_MIN = 5
  * Signed gap between two absolute simulated minutes, resolved to the nearest
  * sensible time-of-day reading.
  *
- * Services run daily, so a raw subtraction across two trains booked on
- * different days produces nonsense like a 900-minute wait. Folding the
- * difference into ±12 hours gives the interpretation a passenger would make:
- * a connection is either shortly after arrival, or it has already gone.
+ * The times these are measured from are absolute minutes that already carry
+ * the day each service runs on, so the gap is a plain subtraction. Folding it
+ * into ±12 hours — which an earlier model, where every train was assumed to be
+ * mid-run on one shared day, did need — would report a departure twenty hours
+ * before an arrival as a comfortable three-hour connection.
  */
-function signedGap(fromMin, toMin) {
-  const wrapped = (((toMin - fromMin) % 1440) + 1440) % 1440
-  return wrapped > 720 ? wrapped - 1440 : wrapped
+function gapBetween(fromMin, toMin) {
+  return toMin - fromMin
 }
 
+/**
+ * Five internal bands, three things a passenger is actually told. The finer
+ * grading still drives the colour and the alternatives, but the words on
+ * screen are the ones someone would use about their own journey.
+ */
 export const CONNECTION_STATUS = {
-  comfortable: { id: 'comfortable', label: 'Comfortable', tone: 'brand' },
-  likely: { id: 'likely', label: 'Likely', tone: 'brand' },
-  tight: { id: 'tight', label: 'Tight', tone: 'caution' },
-  'at-risk': { id: 'at-risk', label: 'At risk', tone: 'caution' },
-  missed: { id: 'missed', label: 'Likely missed', tone: 'danger' },
+  comfortable: { id: 'comfortable', label: 'Likely to make it', tone: 'brand' },
+  likely: { id: 'likely', label: 'Likely to make it', tone: 'brand' },
+  tight: { id: 'tight', label: 'Connection is tight', tone: 'caution' },
+  'at-risk': { id: 'at-risk', label: 'Connection is tight', tone: 'caution' },
+  missed: { id: 'missed', label: 'Likely to miss it', tone: 'danger' },
 }
 
 function statusFor(transferMin) {
@@ -75,12 +80,13 @@ export function connectingServicesAt(code, train, trains) {
         train: other,
         stop,
         departure,
-        transferMin: Math.round(signedGap(myArrival, departure)),
+        transferMin: Math.round(gapBetween(myArrival, departure)),
       }
     })
     .filter(Boolean)
-    // Anything more than four hours out is a different journey, not a connection.
-    .filter((option) => option.transferMin > -90 && option.transferMin < 240)
+    // Anything more than three hours out is a different journey, not a
+    // connection; anything long gone is not an option worth listing.
+    .filter((option) => option.transferMin > -45 && option.transferMin < 180)
     .sort((a, b) => a.transferMin - b.transferMin)
 }
 
@@ -102,8 +108,8 @@ export function predictConnection({ train, code, connecting, trains }) {
   const departure = connStop.predictedDepMin ?? connStop.predictedArrMin
   const bookedDeparture = connStop.bookedDepMin ?? connStop.bookedArrMin
 
-  const transferMin = Math.round(signedGap(arrival, departure))
-  const bookedTransferMin = Math.round(signedGap(bookedArrival, bookedDeparture))
+  const transferMin = Math.round(gapBetween(arrival, departure))
+  const bookedTransferMin = Math.round(gapBetween(bookedArrival, bookedDeparture))
   const status = statusFor(transferMin)
 
   // Alternatives only matter when the booked connection is doubtful.

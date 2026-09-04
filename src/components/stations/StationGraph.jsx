@@ -82,7 +82,7 @@ export function destinationsOf(code) {
   return [...byCode.values()].sort((a, b) => b.services.length - a.services.length)
 }
 
-export function StationGraph({ code }) {
+export function StationGraph({ code, onSelectStation }) {
   const prefersReducedMotion = usePrefersReducedMotion()
   const groupRef = useRef(null)
   const station = stationByCode.get(code)
@@ -153,7 +153,12 @@ export function StationGraph({ code }) {
     <svg
       viewBox={layout.viewBox}
       className="h-full w-full"
-      role="img"
+      // When the spokes are clickable the plate is not a picture: `role="img"`
+      // makes every descendant presentational, which hides the station buttons
+      // from assistive technology even though they are focusable. Left unroled,
+      // the svg keeps its implicit graphics-document role, which still takes a
+      // name and still exposes the controls inside it.
+      role={onSelectStation ? undefined : 'img'}
       aria-label={`Stations connected to ${station.name}`}
     >
       {/* Reachable without changing: quieter, drawn first. */}
@@ -206,7 +211,29 @@ export function StationGraph({ code }) {
       ))}
 
       {layout.inner.map((node) => (
-        <g key={node.code}>
+        <g
+          key={node.code}
+          role={onSelectStation ? 'button' : undefined}
+          tabIndex={onSelectStation ? 0 : undefined}
+          // The name opens with the node's own visible text (WCAG 2.5.3), so
+          // someone who says "AGC" by voice reaches the control they can see.
+          aria-label={
+            onSelectStation
+              ? `${node.code} ${node.services.length} svc · ${Math.round(node.km)} km — open ${node.name}`
+              : undefined
+          }
+          onClick={() => onSelectStation?.(node.code)}
+          onKeyDown={(event) => {
+            if (onSelectStation && (event.key === 'Enter' || event.key === ' ')) {
+              event.preventDefault()
+              onSelectStation(node.code)
+            }
+          }}
+          style={{ cursor: onSelectStation ? 'pointer' : 'default' }}
+          className={onSelectStation ? 'station-node' : undefined}
+        >
+          {/* A generous invisible target: a 5px circle is not a hit area. */}
+          <circle cx={node.x} cy={node.y} r={18} fill="transparent" />
           <circle cx={node.x} cy={node.y} r={5.5} fill="var(--surface)" stroke="var(--brass)" strokeWidth={1.8} />
           <text
             x={node.x}

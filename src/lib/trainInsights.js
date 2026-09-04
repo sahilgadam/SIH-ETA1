@@ -93,19 +93,98 @@ export function predictionFactors(train) {
 }
 
 /**
- * How the delay behaves along the route — the propagation made visible.
- * Reads straight off the timeline, so a service that loses time at a junction
- * and claws it back on a fast stretch shows exactly that shape.
+ * The delay as a story rather than a chart.
+ *
+ * Walks the propagated chain and reports what changed between one call and
+ * the next: the service left late, then lost time on a section, then gave
+ * some back. Those deltas *are* the model — a positive step is a section
+ * running longer than its booked time, a negative one is slack being used —
+ * so this narrates the simulation rather than decorating it.
+ *
+ * Deliberately does not name causes the engine does not model. It knows about
+ * running time against booked time; it does not know about signal failures,
+ * so it does not claim any.
  */
-export function delayProfile(train) {
-  const peak = Math.max(...train.timeline.map((stop) => stop.delayMin), 1)
-  return train.timeline.map((stop) => ({
-    code: stop.code,
-    name: stop.name,
-    state: stop.state,
-    delayMin: stop.delayMin,
-    share: stop.delayMin / peak,
-  }))
+export function delayNarrative(train) {
+  const timeline = train.timeline
+  const events = []
+
+  const origin = timeline[0]
+  if (origin.delayMin > 0) {
+    events.push({
+      id: 'origin',
+      kind: 'lost',
+      minutes: origin.delayMin,
+      title: `Left ${origin.name} late`,
+      detail: `Departed ${origin.delayMin} ${origin.delayMin === 1 ? 'minute' : 'minutes'} after its booked time.`,
+    })
+  } else {
+    events.push({
+      id: 'origin',
+      kind: 'flat',
+      minutes: 0,
+      title: `Left ${origin.name} on time`,
+      detail: 'Departed at its booked time.',
+    })
+  }
+
+  // Only sections the train has actually run are history; the rest is forecast.
+  const reached = timeline.filter((stop) => stop.state === 'past' || stop.state === 'current')
+  for (let i = 1; i < reached.length; i += 1) {
+    const delta = reached[i].delayMin - reached[i - 1].delayMin
+    if (Math.abs(delta) < 1) continue
+
+    events.push({
+      id: `${reached[i - 1].code}-${reached[i].code}`,
+      kind: delta > 0 ? 'lost' : 'recovered',
+      minutes: delta,
+      title:
+        delta > 0
+          ? `Slower running ${reached[i - 1].code} → ${reached[i].code}`
+          : `Made up time ${reached[i - 1].code} → ${reached[i].code}`,
+      detail:
+        delta > 0
+          ? `Took about ${delta} ${delta === 1 ? 'minute' : 'minutes'} longer than booked over this stretch.`
+          : `Ran about ${Math.abs(delta)} ${Math.abs(delta) === 1 ? 'minute' : 'minutes'} quicker than booked.`,
+    })
+  }
+
+  // Time being lost or made up in the section the train is in right now.
+  // Without this the story jumps from the departure delay straight to the
+  // current figure with the difference unaccounted for, which is exactly the
+  // question the section is meant to answer.
+  const lastReached = reached[reached.length - 1]
+  const inFlight = lastReached ? train.delayMin - lastReached.delayMin : 0
+  if (train.section && Math.abs(inFlight) >= 1) {
+    events.push({
+      id: 'in-flight',
+      kind: inFlight > 0 ? 'lost' : 'recovered',
+      minutes: inFlight,
+      title:
+        inFlight > 0
+          ? `Running slower ${train.section.from.code} → ${train.section.to.code}`
+          : `Making up time ${train.section.from.code} → ${train.section.to.code}`,
+      detail:
+        inFlight > 0
+          ? `This stretch is booked at ${train.section.bookedRunMin} minutes and is taking about ${train.section.currentRunMin}.`
+          : `This stretch is booked at ${train.section.bookedRunMin} minutes and is taking about ${train.section.currentRunMin}.`,
+    })
+  }
+
+  const ahead = Math.round(train.destinationDelay - train.delayMin)
+
+  return {
+    events,
+    current: train.delayMin,
+    ahead,
+    expected: train.destinationDelay,
+    aheadLabel:
+      ahead > 0
+        ? `Expected to lose about ${ahead} more ${ahead === 1 ? 'minute' : 'minutes'} on the sections ahead.`
+        : ahead < 0
+          ? `Expected to recover about ${Math.abs(ahead)} ${Math.abs(ahead) === 1 ? 'minute' : 'minutes'} before the end of the run.`
+          : 'No further change expected on the sections ahead.',
+  }
 }
 
 /** Two or three plain sentences a passenger could read aloud. */

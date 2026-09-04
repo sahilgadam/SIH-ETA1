@@ -253,6 +253,109 @@ export const liveTrains = [
       ['NDLS', '03:55', null, 2183],
     ],
   },
+  // --- Evening departures ---------------------------------------------------
+  // The fleet above is mostly long-distance runs that terminate at the big
+  // junctions, which left stations with arrivals but almost no departures —
+  // and the station page's "what can I catch" needs departures to work on.
+  // These five leave the northern junctions through the evening, which is
+  // where the simulated clock starts.
+  {
+    number: '12304',
+    name: 'New Delhi – Howrah Poorva Express',
+    category: 'Superfast',
+    baseDelayMin: 7,
+    stops: [
+      ['NDLS', null, '19:40', 0],
+      ['CNB', '00:20', '00:25', 440],
+      ['PRYJ', '02:35', '02:40', 634],
+      ['DDU', '04:20', '04:30', 784],
+      ['GAYA', '06:25', '06:30', 982],
+      ['DHN', '08:10', '08:15', 1171],
+      ['HWH', '12:55', null, 1451],
+    ],
+  },
+  {
+    number: '12626',
+    name: 'Kerala Express',
+    category: 'Superfast',
+    baseDelayMin: 12,
+    stops: [
+      ['NDLS', null, '20:10', 0],
+      ['AGC', '22:35', '22:37', 195],
+      ['JHS', '01:05', '01:10', 415],
+      ['BPL', '05:20', '05:30', 705],
+      ['NGP', '10:45', '10:50', 1093],
+      ['SC', '19:30', null, 1673],
+    ],
+  },
+  {
+    number: '12954',
+    name: 'August Kranti Rajdhani Express',
+    category: 'Rajdhani',
+    baseDelayMin: 0,
+    stops: [
+      ['NZM', null, '20:35', 0],
+      ['KOTA', '01:45', '01:50', 463],
+      ['RTM', '04:50', '04:55', 730],
+      ['BRC', '07:40', '07:45', 992],
+      ['ST', '09:00', '09:05', 1121],
+      ['BCT', '11:35', null, 1384],
+    ],
+  },
+  {
+    number: '12616',
+    name: 'Grand Trunk Express (Down)',
+    category: 'Express',
+    baseDelayMin: 4,
+    stops: [
+      ['NDLS', null, '21:15', 0],
+      ['AGC', '23:55', '23:57', 195],
+      ['JHS', '02:35', '02:40', 415],
+      ['BPL', '07:05', '07:15', 705],
+      ['NGP', '12:20', '12:30', 1093],
+      ['BPQ', '15:10', '15:15', 1288],
+      ['BZA', '22:20', '22:30', 1660],
+      ['MAS', '04:35', null, 2183],
+    ],
+  },
+  // Evening arrivals into New Delhi. Without these the fleet only ever *left*
+  // the capital after dark, so a passenger getting in there had nothing to
+  // connect to — the up workings are what make the change realistic.
+  {
+    number: '12279',
+    name: 'Taj Express (Up)',
+    category: 'Mail/Express',
+    baseDelayMin: 6,
+    stops: [
+      ['JHS', null, '15:35', 0],
+      ['GWL', '16:45', '16:47', 110],
+      ['AGC', '18:05', '18:07', 220],
+      ['NDLS', '20:35', null, 415],
+    ],
+  },
+  {
+    number: '12034',
+    name: 'Kanpur Shatabdi Express',
+    category: 'Shatabdi',
+    baseDelayMin: 2,
+    stops: [
+      ['CNB', null, '15:55', 0],
+      ['AGC', '18:40', '18:42', 285],
+      ['NDLS', '20:45', null, 440],
+    ],
+  },
+  {
+    number: '12280',
+    name: 'Taj Express',
+    category: 'Mail/Express',
+    baseDelayMin: 3,
+    stops: [
+      ['NDLS', null, '22:00', 0],
+      ['AGC', '00:55', '00:57', 195],
+      ['GWL', '02:10', '02:12', 305],
+      ['JHS', '03:20', null, 415],
+    ],
+  },
 ]
 
 /** Full station names for every code the fleet touches. */

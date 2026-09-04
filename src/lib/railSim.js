@@ -321,13 +321,22 @@ export function trainStateAt(number, minutes) {
   const { stops, sections, train } = route
   const clock = SIM_START_MINUTES + minutes
 
-  // Loop the service: shift the clock into the run's own window.
-  const first = stops[0].bookedDep
+  // Services repeat daily, so the run that matters is the one under way — or,
+  // if today's has not started yet, the one it is waiting to make.
+  //
+  // The previous model shifted the clock forward into the run's own window,
+  // which guaranteed every train was somewhere along its route at all times.
+  // That kept the map busy but made it impossible for a service to be *waiting
+  // to depart*, so no station ever had an upcoming departure and the station
+  // boards came out empty. Now a train that has not left yet stands at its
+  // origin, which is both truthful and what a departure board is made of.
   const last = stops[stops.length - 1].bookedArr
-  const span = last - first + 180 // a turnaround before it runs again
-  let t = clock
-  while (t < first) t += Math.ceil((first - t) / span) * span
-  t = first + ((t - first) % span)
+  // The whole days needed to bring this run's end past the clock. Shifting the
+  // clock back by it is the same as shifting the run forward, and leaves every
+  // booked time on its original scale; the outputs are shifted forward again
+  // below so "in 20 minutes" still counts from the real clock.
+  const dayShift = Math.max(0, Math.ceil((clock - last) / 1440)) * 1440
+  const t = clock - dayShift
 
   // Pass 1 fixes where the train is; pass 2 lets conditions ahead move the
   // forecast without disturbing the section it is already inside.
@@ -380,8 +389,8 @@ export function trainStateAt(number, minutes) {
   const delayMin = Math.max(0, Math.round((actualArr[refIndex] ?? actualDep[refIndex]) - bookedRef))
 
   const terminus = stops[stops.length - 1]
-  const etaMinutes = actualArr[stops.length - 1]
-  const destinationDelay = Math.max(0, Math.round(etaMinutes - terminus.bookedArr))
+  const etaMinutes = actualArr[stops.length - 1] + dayShift
+  const destinationDelay = Math.max(0, Math.round(etaMinutes - dayShift - terminus.bookedArr))
 
   // Per-station timeline (§5): booked vs predicted, and past/current/upcoming.
   const timeline = stops.map((stop, i) => {
@@ -398,10 +407,10 @@ export function trainStateAt(number, minutes) {
     return {
       ...stop,
       state,
-      bookedArrMin: stop.bookedArr,
-      bookedDepMin: stop.bookedDep,
-      predictedArrMin: arr,
-      predictedDepMin: dep,
+      bookedArrMin: stop.bookedArr == null ? null : stop.bookedArr + dayShift,
+      bookedDepMin: stop.bookedDep == null ? null : stop.bookedDep + dayShift,
+      predictedArrMin: arr == null ? null : arr + dayShift,
+      predictedDepMin: dep == null ? null : dep + dayShift,
       // Clamped at zero: an early arrival is absorbed by the booked departure
       // (a train does not leave a station before its time), so reporting a
       // negative delay at a stop it has not reached would be misleading.
@@ -447,8 +456,9 @@ export function trainStateAt(number, minutes) {
     progressInSection,
     progress: stops.length > 1 ? position : 0,
     etaMinutes,
-    bookedArrivalMin: terminus.bookedArr,
-    nextStationEtaMin: where.kind === 'run' ? actualArr[where.index + 1] : actualDep[where.index],
+    bookedArrivalMin: terminus.bookedArr + dayShift,
+    nextStationEtaMin:
+      (where.kind === 'run' ? actualArr[where.index + 1] : actualDep[where.index]) + dayShift,
     simClock: clock,
   }
 }
